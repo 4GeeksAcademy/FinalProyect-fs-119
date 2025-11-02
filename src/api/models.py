@@ -1,58 +1,47 @@
 from flask_sqlalchemy import SQLAlchemy
-from sqlalchemy import String, Boolean, Integer, Float, ForeignKey, CheckConstraint, UniqueConstraint, Numeric, func
+from sqlalchemy import String, Boolean, Numeric, ForeignKey, UniqueConstraint, CheckConstraint
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 from sqlalchemy.ext.hybrid import hybrid_property
 
 db = SQLAlchemy()
 
-class User(db.Model):
 
+class User(db.Model):
     __tablename__ = "user"
     id: Mapped[int] = mapped_column(primary_key=True)
     email: Mapped[str] = mapped_column(String(120), unique=True, nullable=False)
     password: Mapped[str] = mapped_column(nullable=False)
-    is_active: Mapped[bool] = mapped_column(Boolean(), nullable=False)
+    is_active: Mapped[bool] = mapped_column(Boolean(), nullable=False, default=True)
 
-    restaurants: Mapped[list['Restaurant']] = relationship( \
-        back_populates='owner', cascade='all, delete-orphan', single_parent=True)
+    restaurants: Mapped[list['Restaurant']] = relationship(
+        back_populates='owner', cascade='all, delete-orphan', single_parent=True
+    )
 
     def serialize(self):
-        return {
-            "id": self.id,
-            "email": self.email,
-            # do not serialize the password, its a security breach
-        }
-        
-    
+        return {"id": self.id, "email": self.email}
+
 
 class Restaurant(db.Model):
-
     __tablename__ = "restaurant"
     id: Mapped[int] = mapped_column(primary_key=True)
     user_id: Mapped[int] = mapped_column(ForeignKey('user.id'), nullable=False, index=True)
     name: Mapped[str] = mapped_column(String(120), unique=True, nullable=False)
     is_active: Mapped[bool] = mapped_column(Boolean(), nullable=False, default=True)
 
-    owner: Mapped['User'] =relationship(back_populates='restaurants')
-    categories: Mapped[list['Category']] = relationship(back_populates='restaurant', \
-                                                        cascade='all, delete-orphan', single_parent=True)
-    ingredients: Mapped[list['Ingredient']] = relationship(back_populates='restaurant', \
-                                                        cascade='all, delete-orphan', single_parent=True)
-    
+    owner: Mapped['User'] = relationship(back_populates='restaurants')
+    categories: Mapped[list['Category']] = relationship(back_populates='restaurant', cascade='all, delete-orphan', single_parent=True)
+    ingredients: Mapped[list['Ingredient']] = relationship(back_populates='restaurant', cascade='all, delete-orphan', single_parent=True)
+
     def serialize(self):
-        return {
-            "id": self.id,
-            "name": self.name,
-            "user_id": self.user_id
-        }
+        return {"id": self.id, "name": self.name, "user_id": self.user_id}
+
 
 class Category(db.Model):
-
-    __tablename__= "category"
+    __tablename__ = "category"
     id: Mapped[int] = mapped_column(primary_key=True)
     restaurant_id: Mapped[int] = mapped_column(ForeignKey('restaurant.id'), nullable=False, index=True)
-    name: Mapped[str] = mapped_column(String(90), unique=True, nullable=False)
-    image_url: Mapped[str | None] = mapped_column(String(500), unique=False, nullable=True)
+    name: Mapped[str] = mapped_column(String(90), nullable=False)
+    image_url: Mapped[str | None] = mapped_column(String(500), nullable=True)
     is_active: Mapped[bool] = mapped_column(Boolean(), nullable=False, default=True)
 
     __table_args__ = (
@@ -63,17 +52,11 @@ class Category(db.Model):
     dishes: Mapped[list['Dish']] = relationship(back_populates='category', cascade='all, delete-orphan', single_parent=True)
 
     def serialize(self):
-        return {
-            "id": self.id,
-            "restaurant_id": self.restaurant_id,
-            "name": self.name,
-            "image_url": self.image_url,
-            "is_active": self.is_active
-        }
+        return {"id": self.id, "restaurant_id": self.restaurant_id, "name": self.name, "image_url": self.image_url, "is_active": self.is_active}
+
 
 class Ingredient(db.Model):
-
-    __tablename__= 'ingredient'
+    __tablename__ = 'ingredient'
     id: Mapped[int] = mapped_column(primary_key=True)
     restaurant_id: Mapped[int] = mapped_column(ForeignKey('restaurant.id'), nullable=False, index=True)
     name: Mapped[str] = mapped_column(String(120), nullable=False)
@@ -86,27 +69,18 @@ class Ingredient(db.Model):
     )
 
     restaurant: Mapped['Restaurant'] = relationship(back_populates='ingredients')
+    dish_links: Mapped[list['DishIngredient']] = relationship(back_populates='ingredient', cascade='all, delete-orphan', single_parent=True)
 
-    dish_links: Mapped[list['DishIngredient']] = relationship(back_populates='ingredient', \
-                                                               cascade='all, delete-orphan', single_parent=True)
-    
     def serialize(self):
-        return {
-            "id": self.id,
-            "restaurant_id": self.restaurant_id,
-            "name": self.name,
-            "price_per_kg": str(self.price_per_kg),
-            "is_active": self.is_active,
-        }
+        return {"id": self.id, "restaurant_id": self.restaurant_id, "name": self.name, "price_per_kg": str(self.price_per_kg), "is_active": self.is_active}
 
 
 class Dish(db.Model):
-
     __tablename__= 'dish'
     id: Mapped[int] = mapped_column(primary_key=True)
     category_id: Mapped[int] = mapped_column(ForeignKey('category.id'), nullable=False, index=True)
     name: Mapped[str] = mapped_column(String(90), nullable=False)
-    image_url: Mapped[str | None] = mapped_column(String(500), unique=False, nullable=True)
+    image_url: Mapped[str | None] = mapped_column(String(500), nullable=True)
     is_active: Mapped[bool] = mapped_column(Boolean(), nullable=False, default=True)
 
     __table_args__ = (
@@ -114,35 +88,20 @@ class Dish(db.Model):
     )
 
     category: Mapped['Category'] = relationship(back_populates='dishes')
-    ingredients: Mapped[list['DishIngredient']]= relationship(back_populates='dish', \
-                                                              cascade='all, delete-orphan', single_parent=True)
-    
-     # ---- Cálculos de coste (propiedades híbridas para usar en Python y en queries) ----
+    ingredients: Mapped[list['DishIngredient']] = relationship(back_populates='dish', cascade='all, delete-orphan', single_parent=True)
+
     @hybrid_property    
     def total_cost(self):
-        
-    #    Suma de (precio_efectivo_kg * peso_neto_kg) de cada línea.
-        
         return sum(link.line_cost for link in self.ingredients)
-        
-    
+
     def serialize(self, include_cost: bool = True):
-        data = {
-            "id": self.id,
-            "category_id": self.category_id,
-            "name": self.name,
-            "image_url": self.image_url,
-            "is_active": self.is_active,
-        }
-        
+        data = {"id": self.id, "category_id": self.category_id, "name": self.name, "image_url": self.image_url, "is_active": self.is_active}
         if include_cost:
             data['total_cost'] = float(self.total_cost or 0)
-        
         return data
-    
+
 
 class DishIngredient(db.Model):
-
     __tablename__= 'dish_ingredient'
     id: Mapped[int] = mapped_column(primary_key=True)
     dish_id: Mapped[int] = mapped_column(ForeignKey('dish.id'), nullable=False, index=True)
@@ -162,25 +121,16 @@ class DishIngredient(db.Model):
 
     @hybrid_property
     def effective_unit_price(self):
-        """
-        Precio efectivo €/kg: si hay snapshot úsalo; si no, usa el precio actual del ingrediente.
-        """
         return self.unit_price_snapshot if self.unit_price_snapshot is not None else self.ingredient.price_per_kg
 
     @hybrid_property
     def net_weight_kg(self):
-        """
-        Peso neto tras merma.
-        """
         return (self.gross_weight_kg or 0) * (1 - (self.decrease_pct or 0))
 
     @hybrid_property
     def line_cost(self):
-        """
-        Coste de esta línea = precio_efectivo_kg * peso_neto_kg
-        """
         return (self.effective_unit_price or 0) * (self.net_weight_kg or 0)
-    
+
     def serialize(self, include_cost: bool = True):
         data = {
             "id": self.id,
@@ -188,7 +138,7 @@ class DishIngredient(db.Model):
             "ingredient_id": self.ingredient_id,
             "gross_weight_kg": float(self.gross_weight_kg or 0),
             "decrease_pct": float(self.decrease_pct or 0),
-            "unit_price_snapshot": float(self.unit_price_snapshot) if self.unit_price_snapshot is not None else None,
+            "unit_price_snapshot": float(self.unit_price_snapshot) if self.unit_price_snapshot else None
         }
         if include_cost:
             data["net_weight_kg"] = float(self.net_weight_kg or 0)
