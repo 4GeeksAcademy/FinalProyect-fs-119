@@ -1,15 +1,14 @@
 import os
-from flask import Flask, jsonify, send_from_directory
+from flask import Flask, jsonify, send_from_directory, request, url_for 
 from flask_migrate import Migrate
 from flask_cors import CORS
 from flask_jwt_extended import JWTManager
 
 from api.utils import APIException, generate_sitemap
-from api.models import db
+from api.models import db, User, Restaurant, Categories, Ingredients, Dishes, DishIngredient
 from api.routes import api
 from api.admin import setup_admin
 from api.commands import setup_commands
-from api.auth_routes import auth_bp  
 
 ENV = "development" if os.getenv("FLASK_DEBUG") == "1" else "production"
 static_file_dir = os.path.join(os.path.dirname(os.path.realpath(__file__)), '../dist/')
@@ -34,7 +33,6 @@ setup_admin(app)
 setup_commands(app)
 
 app.register_blueprint(api, url_prefix='/api')
-app.register_blueprint(auth_bp, url_prefix='/api')  
 
 @app.errorhandler(APIException)
 def handle_invalid_usage(error):
@@ -53,6 +51,27 @@ def serve_any_other_file(path):
     response = send_from_directory(static_file_dir, path)
     response.cache_control.max_age = 0  
     return response
+@app.route('/api/login', methods=['POST'])
+def login():
+    body = request.get_json(silent=True)
+    if body is None:
+        return jsonify({'msg': ' Debes enviar informacion en el body'}), 400
+    if 'email' not in body:
+        return jsonify({'msg': 'El campo email es obligatorio'}), 400
+    if 'password' not in body:
+        return jsonify({'msg': ' El campo password es obligatorio'}), 400
+    
+    user = User.query.filter_by(email=body['email']).first() 
+    if user is None:
+        return jsonify({'msg': 'Usuario o contraseña incorrecta'}), 400
+    #is_correct = bcrypt.check_password_hash(user.password, body['password'])
+    #if is_correct == False:
+    #    return jsonify({'msg': 'Usuario o contraseña incorrecta'}), 400
+    #acces_token = create_access_token(identity=user.email)
+    if user.password != body['password']:
+        return jsonify({'msg': 'Usuario o contraseña incorrecta'}), 400 
+    return jsonify({'msg': 'Usuario logeado correctamente!'}), 200 #, \
+                    #'token': acces_token}), 200
 
 if __name__ == '__main__':
     PORT = int(os.environ.get('PORT', 3001))
