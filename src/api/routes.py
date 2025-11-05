@@ -35,9 +35,9 @@ from flask_jwt_extended import (
     get_jwt_identity,
     jwt_required,
 )
-from api.models import db, User
+from api.models import db, User, Restaurant, Categories, Ingredients, Dishes, DishIngredient
 from api.utils import APIException
-from api.extensions import bcrypt  # <-- usar el mismo bcrypt inicializado en app.py
+from api.extensions import bcrypt  
 
 api = Blueprint('api', __name__)
 
@@ -93,7 +93,6 @@ def privado():
     current_email = get_jwt_identity()
     user = User.query.filter_by(email=current_email).first()
     if user is None:
-        # Token válido pero el usuario ya no existe: edge case
         return jsonify({'msg': 'Usuario no encontrado'}), 404
 
     return jsonify({'msg': 'Gracias por probar que estas logeado'}), 200
@@ -111,7 +110,6 @@ def register_user():
     if 'password' not in body:
         return jsonify({'msg': 'Debes proporcionar una contraseña'}), 400
 
-    # ¿email ya existe?
     if User.query.filter_by(email=body['email']).first():
         return jsonify({'msg': 'El email ya está registrado'}), 400
 
