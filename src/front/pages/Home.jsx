@@ -1,52 +1,40 @@
-import React, { useEffect } from "react"
-import rigoImageUrl from "../assets/img/rigo-baby.jpg";
-import useGlobalReducer from "../hooks/useGlobalReducer.jsx";
+import React from "react";
+import { Navbar } from "../components/Navbar";
+import { Footer } from "../components/Footer";
 
 export const Home = () => {
-
-	const { store, dispatch } = useGlobalReducer()
-
-	const loadMessage = async () => {
-		try {
-			const backendUrl = import.meta.env.VITE_BACKEND_URL
-
-			if (!backendUrl) throw new Error("VITE_BACKEND_URL is not defined in .env file")
-
-			const response = await fetch(backendUrl + "/api/hello")
-			const data = await response.json()
-
-			if (response.ok) dispatch({ type: "set_hello", payload: data.message })
-
-			return data
-
-		} catch (error) {
-			if (error.message) throw new Error(
-				`Could not fetch the message from the backend.
-				Please check if the backend is running and the backend port is public.`
-			);
-		}
-
-	}
-
-	useEffect(() => {
-		loadMessage()
-	}, [])
-
 	return (
-		<div className="text-center mt-5">
-			<h1 className="display-4">Hello Rigo!!</h1>
-			<p className="lead">
-				<img src={rigoImageUrl} className="img-fluid rounded-circle mb-3" alt="Rigo Baby" />
-			</p>
-			<div className="alert alert-info">
-				{store.message ? (
-					<span>{store.message}</span>
-				) : (
-					<span className="text-danger">
-						Loading message from the backend (make sure your python 🐍 backend is running)...
-					</span>
-				)}
-			</div>
+		<div className="d-flex flex-column min-vh-100 bg-light">
+			
+
+			<main className="flex-grow-1 d-flex justify-content-center align-items-center">
+				<div
+					className="shadow text-center"
+					style={{
+						backgroundColor: "#d9d9d9",
+						border: "2px solid #007bff",
+						borderRadius: "10px",
+						padding: "2rem",
+						width: "90%",
+						maxWidth: "700px",
+					}}
+				>
+					<div
+						style={{
+							width: "110px",
+							height: "110px",
+							backgroundColor: "#e59898",
+							borderRadius: "50%",
+							margin: "0 auto 1rem auto",
+						}}
+					></div>
+
+					<p className="fs-5 text-white">texto blabla</p>
+					<p className="text-white mt-5">ya miramos qué poner aquí</p>
+				</div>
+			</main>
+
+			
 		</div>
 	);
-}; 
+};
