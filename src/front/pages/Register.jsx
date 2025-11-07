@@ -4,6 +4,7 @@ import { useNavigate, Link } from "react-router-dom";
 export const Register = () => {
   const navigate = useNavigate();
   const [email, setEmail] = useState("");
+  const [name, setName] = useState("");
   const [password, setPassword] = useState("");
   const [repeatPassword, setRepeatPassword] = useState("");
   const [error, setError] = useState("");
@@ -22,10 +23,10 @@ export const Register = () => {
 
     setLoading(true);
     try {
-      const res = await fetch(`${API_URL}/api/signup`, {
+      const res = await fetch(`${API_URL}api/user/register`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email, password }),
+        body: JSON.stringify({ email, password, name }),
       });
       const data = await res.json();
 
@@ -56,6 +57,18 @@ export const Register = () => {
             )}
 
             <form onSubmit={handleSignup} noValidate>
+              <div className="mb-3">
+                <label htmlFor="name" className="form-label">Name</label>
+                <input
+                  id="name"
+                  type="name"
+                  className="form-control"
+                  placeholder="name"
+                  value={name}
+                  onChange={(e) => setName(e.target.value)}
+                  required
+                />
+              </div>
               <div className="mb-3">
                 <label htmlFor="email" className="form-label">Email</label>
                 <input

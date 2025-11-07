@@ -6,10 +6,10 @@ from flask_cors import CORS
 from flask_jwt_extended import JWTManager
 from api.utils import APIException, generate_sitemap
 from api.models import db
-from api.routes import api
 from api.admin import setup_admin
 from api.commands import setup_commands
 from api.extensions import bcrypt  
+import api.routes.user as api_user
 
 from flask_mail import Mail
 
@@ -52,8 +52,8 @@ jwt = JWTManager(app)
 
 setup_admin(app)
 setup_commands(app)
-app.register_blueprint(api, url_prefix='/api')
 
+app.register_blueprint(api_user.auth_bp, url_prefix='/api/user')
 
 
 @app.errorhandler(APIException)
