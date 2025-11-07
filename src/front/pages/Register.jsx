@@ -8,8 +8,8 @@ export const Register = () => {
   const [repeatPassword, setRepeatPassword] = useState("");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
-// aqui poner vuestra url del repo para que podais verlo y que furule x )
-  const API_URL = import.meta.env.VITE_API_URL || "https://cautious-fishstick-pj95gp4gw6grf9496-3001.app.github.dev";
+
+  const API_URL = import.meta.env.VITE_BACKEND_URL || "https://cautious-fishstick-pj95gp4gw6grf9496-3001.app.github.dev";
 
   const handleSignup = async (e) => {
     e.preventDefault();

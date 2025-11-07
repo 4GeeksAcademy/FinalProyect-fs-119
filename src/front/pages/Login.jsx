@@ -8,7 +8,7 @@ export const Login = () => {
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
 
-  const API_URL = import.meta.env.VITE_API_URL || "https://cautious-fishstick-pj95gp4gw6grf9496-3001.app.github.dev";
+  const API_URL = import.meta.env.VITE_BACKEND_URL || "https://cautious-fishstick-pj95gp4gw6grf9496-3001.app.github.dev";
 
   const handleLogin = async (e) => {
     e.preventDefault();
