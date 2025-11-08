@@ -12,39 +12,59 @@ CORS(auth_bp)
 
 @auth_bp.route('/login', methods=['POST'])
 def login():
-    data = request.get_json()
-    email = data.get("email")
-    password = data.get("password")
+    body = request.get_json(silent=True)
+    if body is None:
+        return jsonify({'msg': ' Debes enviar informacion en el body'}), 400
+    if 'email' not in body:
+        return jsonify({'msg': 'El campo email es obligatorio'}), 400
+    if 'password' not in body:
+        return jsonify({'msg': ' El campo password es obligatorio'}), 400
 
-    if not email or not password:
-        return jsonify({"error": "Faltan campos"}), 400
-
-    user = User.query.filter_by(email=email).first()
-    if not user or not check_password_hash(user.password, password):
+    user = User.query.filter_by(email=body['email']).first()
+    if not user or not check_password_hash(user.password, body['password']):
         return jsonify({"error": "Credenciales inválidas"}), 401
 
-    token = create_access_token(identity=user.id, expires_delta=timedelta(hours=2))
+    access_token = create_access_token(identity=user.email)
     return jsonify({
-        "token": token,
-        "user": user.serialize()
+        'msg': 'Usuario logeado correctamente!',
+        'token': access_token,
+        'user': user.serialize()
     }), 200
 
 
 @auth_bp.route('/register', methods=['POST'])
 def register_user():
 
-    data = request.get_json()
-    email = data.get("email")
-    password = data.get("password")
+    body = request.get_json(silent=True)
+    if body is None:
+        return jsonify({'msg': 'Debes enviar informacion en el body'}), 400
+    if 'email' not in body:
+        return jsonify({'msg': 'El campo email es obligatorio'}), 400
+    if 'name' not in body:
+        return jsonify({'msg': 'Debes proporcionar un nombre'}), 400
+    if 'password' not in body:
+        return jsonify({'msg': 'Debes proporcionar una contraseña'}), 400
 
-    if not email or not password:
-        return jsonify({"error": "Faltan campos obligatorios"}), 400
+    user = User(email=body["email"], password=generate_password_hash(
+        body["password"]), is_active=True, name=body["name"])
 
-    if User.query.filter_by(email=email).first():
-        return jsonify({"error": "El email ya está registrado"}), 400
-
-    user = User(email=email, password=generate_password_hash(password), is_active=True)
     db.session.add(user)
     db.session.commit()
 
-    return jsonify({"message": "Usuario creado exitosamente"}), 201
+    return jsonify({'msg': 'Usuario registrado!', 'register': user.serialize()}), 200
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

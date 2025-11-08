@@ -19,7 +19,10 @@ export const Login = () => {
       const res = await fetch(`${API_URL}api/user/login`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email, password }),
+        body: JSON.stringify({ 
+          email: email.trim(), 
+          password: password.trim()
+        }),
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || data.msg || "Error al iniciar sesión");
