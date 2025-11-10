@@ -22,19 +22,19 @@ def dish_label(d: Dishes):
 
 
 class UsersModelView(ModelView):
-    column_list = ['id', 'name', 'email', 'password', 'is_active']
+    column_list = ['id', 'name', 'email', 'password', 'telefono', 'direccion', 'is_active']
     column_searchable_list = ['name', 'email']
     # Formulario
-    form_columns = ['name', 'email', 'password', 'is_active']
+    form_columns = ['name', 'email', 'password', 'telefono', 'direccion', 'is_active']
 
 
 class RestaurantModelView(ModelView):
-    column_list = ['id', 'name', 'owner', 'is_active']
+    column_list = ['id', 'owner', 'name', 'telefono', 'direccion','is_active']
     column_labels = {'owner': 'Owner (User)'}
     column_searchable_list = ['name', 'owner.name', 'owner.email']
     column_filters = ['is_active']
 
-    form_columns = ['name', 'owner', 'is_active']
+    form_columns = ['owner','name', 'telefono', 'direccion', 'is_active']
 
     form_ajax_refs = {
         'owner': {

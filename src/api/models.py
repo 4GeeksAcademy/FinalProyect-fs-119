@@ -9,9 +9,11 @@ db = SQLAlchemy()
 class User(db.Model):
     __tablename__ = "user"
     id: Mapped[int] = mapped_column(primary_key=True)
-    name: Mapped[str]= mapped_column(String(90), nullable=False)
+    name: Mapped[str]= mapped_column(String(90), nullable=True)
     email: Mapped[str] = mapped_column(String(120), unique=True, nullable=False)
     password: Mapped[str] = mapped_column(nullable=False)
+    telefono: Mapped[int] = mapped_column(nullable=True)
+    direccion: Mapped[str] = mapped_column(String(120), nullable=True)
     is_active: Mapped[bool] = mapped_column(Boolean(), nullable=False, default=True)
 
     restaurants: Mapped[list['Restaurant']] = relationship(
@@ -22,7 +24,13 @@ class User(db.Model):
         return f'User {self.name}'
 
     def serialize(self):
-        return {"id": self.id, "name": self.name, "email": self.email, "is_active": self.is_active}
+        return {"id": self.id, 
+                "name": self.name, 
+                "email": self.email, 
+                "telefono": self.telefono,
+                "direccion": self.direccion,  
+                "is_active": self.is_active
+                }
 
 
 class Restaurant(db.Model):
@@ -30,6 +38,9 @@ class Restaurant(db.Model):
     id: Mapped[int] = mapped_column(primary_key=True)
     company_id: Mapped[int] = mapped_column(ForeignKey('user.id'), nullable=False, index=True)
     name: Mapped[str] = mapped_column(String(120), nullable=False)
+    telefono: Mapped[int] = mapped_column(nullable=True)
+    direccion: Mapped[str] = mapped_column(String(120), nullable=True)
+
     is_active: Mapped[bool] = mapped_column(Boolean(), nullable=False, default=True)
 
     owner: Mapped['User'] = relationship('User', back_populates='restaurants', foreign_keys=[company_id]) 
@@ -40,7 +51,13 @@ class Restaurant(db.Model):
         return f'Restaurant {self.name}'
 
     def serialize(self):
-        return {"id": self.id, "name": self.name, "company_id": self.company_id, "is_active": self.is_active}
+        return {"id": self.id, 
+                "name": self.name, 
+                "company_id": self.company_id,
+                "telefono": self.telefono,
+                "direccion": self.direccion,  
+                "is_active": self.is_active
+                }
 
 
 class Categories(db.Model):
