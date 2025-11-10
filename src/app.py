@@ -10,6 +10,7 @@ from api.admin import setup_admin
 from api.commands import setup_commands
 from api.extensions import bcrypt  
 import api.routes.user as api_user
+import api.routes.rest as api_rest
 
 from flask_mail import Mail
 
@@ -54,7 +55,7 @@ setup_admin(app)
 setup_commands(app)
 
 app.register_blueprint(api_user.auth_bp, url_prefix='/api/user')
-
+app.register_blueprint(api_rest.rest_bp)
 
 @app.errorhandler(APIException)
 def handle_invalid_usage(error):
