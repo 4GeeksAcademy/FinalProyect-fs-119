@@ -8,6 +8,8 @@ from flask_cors import CORS
 
 rest_bp = Blueprint('rest', __name__, url_prefix='/api/user/<int:user_id>')
 
+#---URL->/api/user/user_id/rest
+
 CORS(rest_bp)
 
 @rest_bp.route('/restaurant', methods=['POST'])
