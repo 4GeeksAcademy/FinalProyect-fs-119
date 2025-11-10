@@ -4,13 +4,13 @@ from werkzeug.security import generate_password_hash, check_password_hash
 from datetime import timedelta
 from ..models import db, User
 from flask_cors import CORS
-from api.extensions import bcrypt, has_value
+from api.extensions import has_value
 
 auth_bp = Blueprint('api/user', __name__)
 
 #---Incorporacion nueva para campos vacios en PUT ---VALIDAR HORACIO------
-def has_value(value):
-    return not (value is None or (isinstance(value, str) and value.strip() == ''))
+#def has_value(value):
+#    return not (value is None or (isinstance(value, str) and value.strip() == ''))
 #--------------------------------------------------------------------------------
 
 CORS(auth_bp)
