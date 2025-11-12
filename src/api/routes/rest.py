@@ -4,7 +4,7 @@ from werkzeug.security import generate_password_hash, check_password_hash
 from datetime import timedelta
 from ..models import db, Restaurant, User
 from flask_cors import CORS
-from api.extensions import bcrypt, has_value
+from api.extensions import  has_value
 
 rest_bp = Blueprint('rest', __name__, url_prefix='/api/user/<int:user_id>')
 
@@ -58,6 +58,20 @@ def get_restaurant(user_id, restaurant_id):
     print(get_restaurant)
     return jsonify({'restaurant': restaurant.serialize()}), 200
 
+@rest_bp.route('/restaurant', methods=['GET'])
+def get_all_restaurant(user_id):
+
+    restaurants = Restaurant.query.filter_by(company_id=user_id).all()
+    
+    restaurants_serialized = [
+        restaurant.serialize() for restaurant in restaurants
+        ]
+
+    response_body = {
+        'msg': f"Restaurantes del usuario {user_id} serializados",
+        'restaurants': restaurants_serialized
+    }
+    return jsonify(response_body), 200    
 
 
 @rest_bp.route('/restaurant/<int:restaurant_id>', methods=['PUT'])
@@ -77,7 +91,7 @@ def update_restaurant(user_id, restaurant_id):
     
     updated = False
 
-    if 'name' in body and has_value(body.get('name')):  # asumiendo has_value(str)->bool
+    if 'name' in body and has_value(body.get('name')):  
         new_name = body['name'].strip()
         if not new_name:
             return jsonify({'msg': 'El nombre no puede estar vacío'}), 400
