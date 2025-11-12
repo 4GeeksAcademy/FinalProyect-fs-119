@@ -8,7 +8,7 @@ from api.utils import APIException, generate_sitemap
 from api.models import db
 from api.admin import setup_admin
 from api.commands import setup_commands
-from api.extensions import bcrypt  
+from api.extensions import bcrypt
 import api.routes.user as api_user
 import api.routes.rest as api_rest
 

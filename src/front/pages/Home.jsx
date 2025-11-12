@@ -52,7 +52,7 @@ export const Home = () => {
             </div>
           </div>
 
-          {/* Controles */}
+          
           <button className="carousel-control-prev" type="button" data-bs-target="#projectCarousel" data-bs-slide="prev">
             <span className="carousel-control-prev-icon" aria-hidden="true"></span>
             <span className="visually-hidden">Anterior</span>
