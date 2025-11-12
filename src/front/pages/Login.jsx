@@ -8,7 +8,7 @@ export const Login = () => {
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
 
-  const API_URL = import.meta.env.VITE_BACKEND_URL || "https://cautious-fishstick-pj95gp4gw6grf9496-3001.app.github.dev";
+  const API_URL = import.meta.env.VITE_BACKEND_URL;
 
   const handleLogin = async (e) => {
     e.preventDefault();
@@ -41,10 +41,20 @@ export const Login = () => {
     <div className="container d-flex justify-content-center align-items-center" style={{ minHeight: "100vh" }}>
       <div className="col-12 col-md-6 col-lg-4">
         <div className="card shadow-sm border-0">
-          <div className="card-header bg-dark text-white text-center">
+          <div className="card-header text-white text-center" style={{ backgroundColor: "rgb(75, 101, 135)" }}>
             <h1 className="h4 mb-0">LOGIN</h1>
           </div>
-          <div className="card-body">
+          <div
+              className="card-body"
+              style={{
+                backgroundImage: 'url("/fondo.jpg")',
+                backgroundSize: "cover",
+                backgroundPosition: "center",
+                backgroundRepeat: "no-repeat",
+                backdropFilter: "blur(6px)",
+                borderRadius: "10px",
+              }}
+            >
             {error && (
               <div className="alert alert-danger py-2" role="alert">
                 {error}
@@ -81,6 +91,7 @@ export const Login = () => {
               <button
                 type="submit"
                 className="btn btn-primary w-100"
+                style={{ backgroundColor: "rgb(59, 74, 99)"}}
                 disabled={loading}
               >
                 {loading ? "Entrando..." : "LOGIN"}
