@@ -8,7 +8,17 @@ export const Login = () => {
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
 
-  const API_URL = import.meta.env.VITE_BACKEND_URL;
+  const API_BASE = import.meta.env.VITE_BACKEND_URL;
+
+  const decodeJwtPayload = (tkn) => {
+    try {
+      const base64 = tkn.split(".")[1];
+      const json = atob(base64.replace(/-/g, "+").replace(/_/g, "/"));
+      return JSON.parse(json);
+    } catch {
+      return null;
+    }
+  };
 
   const handleLogin = async (e) => {
     e.preventDefault();
@@ -16,19 +26,33 @@ export const Login = () => {
     setLoading(true);
 
     try {
-      const res = await fetch(`${API_URL}api/user/login`, {
+      if (!API_BASE) throw new Error("Falta VITE_BACKEND_URL en .env");
+
+      const loginURL = new URL("api/user/login", API_BASE).toString();
+
+      const res = await fetch(loginURL, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ 
-          email: email.trim(), 
-          password: password.trim()
+        body: JSON.stringify({
+          email: email.trim(),
+          password: password.trim(),
         }),
       });
+
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || data.msg || "Error al iniciar sesión");
 
       localStorage.setItem("token", data.token);
-      localStorage.setItem("user", JSON.stringify(data.user));
+      if (data.user) localStorage.setItem("user", JSON.stringify(data.user));
+
+      let userId = data?.user?.id || data?.user?._id || null;
+      if (!userId && data?.token) {
+        const payload = decodeJwtPayload(data.token);
+        userId = payload?.id || payload?.user_id || payload?.sub || null;
+      }
+      if (!userId) throw new Error("No se pudo determinar el user_id tras el login.");
+
+      localStorage.setItem("user_id", String(userId));
       navigate("/");
     } catch (err) {
       setError(err.message);
@@ -45,16 +69,16 @@ export const Login = () => {
             <h1 className="h4 mb-0">LOGIN</h1>
           </div>
           <div
-              className="card-body"
-              style={{
-                backgroundImage: 'url("/fondo.jpg")',
-                backgroundSize: "cover",
-                backgroundPosition: "center",
-                backgroundRepeat: "no-repeat",
-                backdropFilter: "blur(6px)",
-                borderRadius: "10px",
-              }}
-            >
+            className="card-body"
+            style={{
+              backgroundImage: 'url("/fondo.jpg")',
+              backgroundSize: "cover",
+              backgroundPosition: "center",
+              backgroundRepeat: "no-repeat",
+              backdropFilter: "blur(6px)",
+              borderRadius: "10px",
+            }}
+          >
             {error && (
               <div className="alert alert-danger py-2" role="alert">
                 {error}
@@ -91,7 +115,7 @@ export const Login = () => {
               <button
                 type="submit"
                 className="btn btn-primary w-100"
-                style={{ backgroundColor: "rgb(59, 74, 99)"}}
+                style={{ backgroundColor: "rgb(59, 74, 99)" }}
                 disabled={loading}
               >
                 {loading ? "Entrando..." : "LOGIN"}
