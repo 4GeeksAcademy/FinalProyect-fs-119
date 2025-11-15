@@ -1,12 +1,12 @@
 from flask import Blueprint, request, jsonify
-from flask_jwt_extended import create_access_token
-from werkzeug.security import generate_password_hash, check_password_hash
+#from flask_jwt_extended import create_access_token
+#from werkzeug.security import generate_password_hash, check_password_hash
 from datetime import timedelta
 from ..models import db, Restaurant, User, Categories
 from flask_cors import CORS
 from api.extensions import  has_value
 
-cat_bp = Blueprint('cat', __name__, url_prefix='/api/user/restaurant/<int:restaurant_id>')
+cat_bp = Blueprint('cat', __name__, url_prefix='/api/user/<int:restaurant_id>')
 
 
 CORS(cat_bp)
@@ -61,12 +61,19 @@ def get_gategory(restaurant_id, category_id):
         return jsonify({
             'msg': f'La categoria con ID {category_id} no existe'
         }), 404
+    
     return jsonify({
         'category': category.serialize()
     }), 200
 
 @cat_bp.route('/categories', methods=['GET'])
 def get_all_categories(restaurant_id):
+
+    restaurant = Restaurant.query.get(restaurant_id)
+    if restaurant is None:
+        return jsonify({
+            'msg': f'El restaurante con ID "{restaurant_id}" no existe'
+        }), 404
 
     categories = Categories.query.filter_by(restaurant_id=restaurant_id).all()
 
