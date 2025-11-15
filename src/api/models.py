@@ -1,13 +1,26 @@
+from __future__ import annotations
+from typing import List, Optional
+
 from flask_sqlalchemy import SQLAlchemy
-from sqlalchemy import String, Boolean, Numeric, ForeignKey, UniqueConstraint, CheckConstraint, Integer
+from sqlalchemy import String, Boolean, Numeric, ForeignKey, UniqueConstraint, CheckConstraint, Integer, Index, case, func, select
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 from sqlalchemy.ext.hybrid import hybrid_property
 
 db = SQLAlchemy()
 
+def _to_base_unit_price(unit: Optional[str], price_per_unit: float) -> float:
+   
+    u = (unit or "").lower()
+    p = float(price_per_unit or 0)
+    if u in ("kg", "l"):
+        return p / 1000.0
+    
+    return p
+
 
 class User(db.Model):
     __tablename__ = "user"
+
     id: Mapped[int] = mapped_column(primary_key=True)
     name: Mapped[str]= mapped_column(String(90), nullable=True)
     email: Mapped[str] = mapped_column(String(120), unique=True, nullable=False)
@@ -17,7 +30,10 @@ class User(db.Model):
     is_active: Mapped[bool] = mapped_column(Boolean(), nullable=False, default=True)
 
     restaurants: Mapped[list['Restaurant']] = relationship(
-        back_populates='owner', cascade='all, delete-orphan', single_parent=True
+        back_populates='owner', 
+        cascade='all, delete-orphan', 
+        single_parent=True,
+        passive_deletes=True
     )
 
     def __repr__(self):
@@ -35,17 +51,42 @@ class User(db.Model):
 
 class Restaurant(db.Model):
     __tablename__ = "restaurant"
+
     id: Mapped[int] = mapped_column(primary_key=True)
-    company_id: Mapped[int] = mapped_column(ForeignKey('user.id'), nullable=False, index=True)
+    company_id: Mapped[int] = mapped_column(
+        ForeignKey('user.id'), 
+        nullable=False, 
+        index=True
+        )
     name: Mapped[str] = mapped_column(String(120), nullable=False)
     telefono: Mapped[int] = mapped_column(nullable=True)
     direccion: Mapped[str] = mapped_column(String(120), nullable=True)
-
     is_active: Mapped[bool] = mapped_column(Boolean(), nullable=False, default=True)
 
-    owner: Mapped['User'] = relationship('User', back_populates='restaurants', foreign_keys=[company_id]) 
-    categories: Mapped[list['Categories']] = relationship(back_populates='restaurant', cascade='all, delete-orphan', single_parent=True)
-    ingredients: Mapped[list['Ingredients']] = relationship(back_populates='restaurant', cascade='all, delete-orphan', single_parent=True)
+    owner: Mapped['User'] = relationship(
+        'User', 
+        back_populates='restaurants', 
+        foreign_keys=[company_id],
+        passive_deletes=True
+        ) 
+    
+    categories: Mapped[list['Categories']] = relationship(
+        back_populates='restaurant', 
+        cascade='all, delete-orphan', 
+        single_parent=True,
+        passive_deletes=True
+        )
+    
+    ingredients: Mapped[list['Ingredients']] = relationship(
+        back_populates='restaurant', 
+        cascade='all, delete-orphan', 
+        single_parent=True,
+        passive_deletes=True
+        )
+
+    __table_args__ = (
+        Index("ix_restaurant_company_name", "company_id", "name"),
+        )
 
     def __repr__(self):
         return f'Restaurant {self.name}'
@@ -62,47 +103,95 @@ class Restaurant(db.Model):
 
 class Categories(db.Model):
     __tablename__ = "categories"
+
     id: Mapped[int] = mapped_column(primary_key=True)
-    restaurant_id: Mapped[int] = mapped_column(ForeignKey('restaurant.id'), nullable=False, index=True)
+    restaurant_id: Mapped[int] = mapped_column(
+        ForeignKey('restaurant.id'), 
+        nullable=False, 
+        index=True
+        )
     name: Mapped[str] = mapped_column(String(90), nullable=False)
     image_url: Mapped[str | None] = mapped_column(String(500), nullable=True)
     is_active: Mapped[bool] = mapped_column(Boolean(), nullable=False, default=True)
 
     __table_args__ = (
         UniqueConstraint("restaurant_id", "name", name="uq_category_restaurant_name"),
+        Index("ix_category_restaurant_name", "restaurant_id", "name")
     )
 
-    restaurant: Mapped['Restaurant'] = relationship(back_populates='categories')
-    dishes: Mapped[list['Dishes']] = relationship(back_populates='category', cascade='all, delete-orphan', single_parent=True)
+    restaurant: Mapped['Restaurant'] = relationship(
+        back_populates='categories',
+        passive_deletes=True
+        )
+    dishes: Mapped[list['Dishes']] = relationship(
+        back_populates='category', 
+        cascade='all, delete-orphan', 
+        single_parent=True,
+        passive_deletes=True
+        )
 
     def __repr__(self):
         return f'Category {self.name}'
 
     def serialize(self):
-        return {"id": self.id, "restaurant_id": self.restaurant_id, "name": self.name, "image_url": self.image_url, "is_active": self.is_active}
+        return {
+            "id": self.id, 
+            "restaurant_id": self.restaurant_id, 
+            "name": self.name, 
+            "image_url": self.image_url, 
+            "is_active": self.is_active
+            }
 
 
 class Ingredients(db.Model):
     __tablename__ = 'ingredients'
+
     id: Mapped[int] = mapped_column(primary_key=True)
-    id_product_api: Mapped[int] = mapped_column(Integer, unique=True)
-    restaurant_id: Mapped[int] = mapped_column(ForeignKey('restaurant.id'), nullable=False, index=True)
+    id_product_api: Mapped[int] = mapped_column(Integer, unique=True, nullable=True)
+
+    restaurant_id: Mapped[int] = mapped_column(
+        ForeignKey('restaurant.id'), 
+        nullable=False, 
+        index=True
+        )
     name: Mapped[str] = mapped_column(String(120), nullable=False)
     image_url: Mapped[str | None] = mapped_column(String(500), nullable=True)
     unit: Mapped[str] = mapped_column(String(20), nullable=False)
+
     price_per_unit: Mapped[Numeric] = mapped_column(Numeric(10, 2), nullable=False)
     is_active: Mapped[bool] = mapped_column(Boolean, nullable=False, default=True)
 
     __table_args__ = (
         UniqueConstraint("restaurant_id", "name", name="uq_ingredient_restaurant_name"),
         CheckConstraint("price_per_unit >= 0", name="ck_ingredient_price_nonnegative"),
+        CheckConstraint("unit IN ('g','kg','ml','l','ud')", name="ck_ingredient_unit_valid"),
+        Index("ix_ingredient_restaurant_name", "restaurant_id", "name")
     )
 
-    restaurant: Mapped['Restaurant'] = relationship(back_populates='ingredients')
-    dish_ingredients: Mapped[list['DishIngredient']] = relationship(back_populates='ingredient', cascade='all, delete-orphan', single_parent=True)
+    restaurant: Mapped['Restaurant'] = relationship(
+        back_populates='ingredients',
+        passive_deletes=True
+        )
+    dish_ingredients: Mapped[list['DishIngredient']] = relationship(
+        back_populates='ingredient', 
+        cascade='all, delete-orphan', 
+        single_parent=True,
+        passive_deletes=True
+        )
+
+    def __repr__(self) -> str:
+        return f"Ingredient<{self.id}:{self.name} ({self.unit})>"
 
     def serialize(self):
-        return {"id": self.id, "restaurant_id": self.restaurant_id, "name": self.name, "unit": self.unit, "price_per_unit":(self.price_per_unit), "is_active": self.is_active}
+        return {
+            "id": self.id, 
+            "restaurant_id": self.restaurant_id, 
+            "name": self.name, 
+            "unit": self.unit, 
+            "price_per_unit": float(self.price_per_unit or 0),
+            "image_url": self.image_url, 
+            "is_active": self.is_active
+            }
 
 
 class Dishes(db.Model):

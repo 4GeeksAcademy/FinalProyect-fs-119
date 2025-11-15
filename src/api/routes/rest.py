@@ -61,6 +61,12 @@ def get_restaurant(user_id, restaurant_id):
 @rest_bp.route('/restaurant', methods=['GET'])
 def get_all_restaurant(user_id):
 
+    user = User.query.get(user_id)
+    if user is None:
+        return jsonify({
+            'msg': f'El usuario con ID "{user_id}" no existe'
+        }), 404
+
     restaurants = Restaurant.query.filter_by(company_id=user_id).all()
     
     restaurants_serialized = [
