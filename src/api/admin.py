@@ -74,17 +74,16 @@ class IngredientsModelView(ModelView):
 
 
 class DishesModelView(ModelView):
-    column_list = ['id', 'name', 'category', 'description', 'cost_price', 'sale_price', 'image_url', 'is_active']
-    column_labels = {'category': 'Category'}
-    column_searchable_list = ['name', 'category.name', 'description']
-    column_filters = ['category.name', 'is_active']
+    column_list = ['id', 'name', 'restaurant', 'category', 'description', 'cost_price', 'image_url', 'is_active']
+    column_labels = {'restaurant': 'Restaurant', 'category': 'Category'}
+    column_searchable_list = ['name', 'category.name', 'description', 'restaurant.name']
+    column_filters = ['restaurant.name', 'category.name', 'is_active']
 
-    form_columns = ['category', 'name', 'description', 'cost_price', 'sale_price', 'image_url', 'is_active']
+    form_columns = ['restaurant', 'category', 'name', 'description', 'cost_price', 'image_url', 'is_active']
 
     form_ajax_refs = {
-        'category': {
-            'fields': ('name',),
-        }
+        'restaurant': { 'fields': ('name',) },
+        'category':   { 'fields': ('name',) }
     }
 
 

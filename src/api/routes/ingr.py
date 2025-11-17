@@ -1,8 +1,6 @@
 from flask import Blueprint, request, jsonify
-#from flask_jwt_extended import create_access_token
-#from werkzeug.security import generate_password_hash, check_password_hash
-from datetime import timedelta
-from ..models import db, Restaurant, User, Categories, Ingredients
+from ..models import db, Restaurant, Ingredients
+from decimal import Decimal, InvalidOperation
 from flask_cors import CORS
 from api.extensions import  has_value
 
@@ -22,6 +20,22 @@ UNIT_MAP = {
 }
 
 ALLOWED_UNITS = {'g', 'kg', 'ml', 'l', 'ud'}
+
+def _parse_price(ppu):
+
+    if ppu is None:
+        return ValueError("price_per_unit requerido")
+    
+    try:
+        val = Decimal(str(ppu))
+
+    except (InvalidOperation, TypeError):
+        return ValueError("El campo 'price_per_unit' debe ser numérico")
+    
+    if val < 0:
+        return ValueError("El campo 'price_per_unit' debe ser positivo")
+    
+    return val.quantize(Decimal("0.0001"))
 
 @ingr_bp.route('/ingredients', methods=['POST'])
 def add_ingredient(restaurant_id):
@@ -51,24 +65,26 @@ def add_ingredient(restaurant_id):
             'msg': 'Unidad invalida'
         }), 400
     
-    ppu = body.get('price_per_unit')
     try:
-        price_per_unit = float(ppu)
-        
-    except (TypeError, ValueError):
-        return jsonify({
-            'msg': 'El campo "price_per_unit" debe ser numerico'
-        }), 400
-    if price_per_unit < 0:
-        return jsonify({
-            'msg': 'El campo "price_per_unit" debe ser positivo'
-        }), 400
+        price_per_unit = _parse_price(body.get('price_per_unit'))
+
+    except ValueError as e:
+        return jsonify({'msg': str(e)}), 400
     
     image_url = body.get('image_url')
+
     id_product_api = body.get('id_product_api')
+    if id_product_api is not None and id_product_api != '':
+        try:
+            id_product_api = int(id_product_api)
+        except (TypeError, ValueError):
+            return jsonify({
+                'msg': 'El campo "id_product_api" debe ser un entero'
+                }), 400
 
     existing_by_name = Ingredients.query.filter_by(
-        restaurant_id = restaurant_id, name = name
+        restaurant_id = restaurant_id, 
+        name = name
     ).first()
 
     if existing_by_name:
@@ -77,9 +93,11 @@ def add_ingredient(restaurant_id):
         }), 400
 
     if id_product_api is not None:
+
         existing_by_api = Ingredients.query.filter_by(
             id_product_api = id_product_api
         ).first()
+
         if existing_by_api:
             return jsonify({
                 'msg': f'El "id_product_api" "{id_product_api}" ya esta asociado a otro ingrediente'
@@ -107,9 +125,10 @@ def add_ingredient(restaurant_id):
 @ingr_bp.route('/ingredients/<int:ingredient_id>', methods=['GET'])
 def get_ingredient(restaurant_id, ingredient_id):
 
-    ingredient = db.session.get(Ingredients, ingredient_id)
-    if ingredient and ingredient.restaurant_id != restaurant_id:
-        ingredient = None
+    ingredient = Ingredients.query.filter_by(
+        id = ingredient_id, 
+        restaurant_id = restaurant_id
+        ).first()
 
     if ingredient is None:
         return jsonify({
@@ -121,7 +140,7 @@ def get_ingredient(restaurant_id, ingredient_id):
     }), 200
 
 
-@ingr_bp.route('ingredients', methods=['GET'])
+@ingr_bp.route('/ingredients', methods=['GET'])
 def get_all_ingredients(restaurant_id):
 
     restaurant = Restaurant.query.get(restaurant_id)
@@ -130,18 +149,14 @@ def get_all_ingredients(restaurant_id):
             'msg': f'El restaurante con ID "{restaurant_id}" no existe'
         }), 404
 
-    ingredients = Ingredients.query.filter_by(restaurant_id = restaurant_id).all()
+    ingredients = Ingredients.query.filter_by(
+        restaurant_id = restaurant_id
+        ).all()
     
-    ingredients_serialized = [
-        ingredient.serialize() for ingredient in ingredients
-    ]
-
-    response_body = {
-        'msg': f'Ingredientes del restaurante {restaurant_id} serializados',
-        'ingredients': ingredients_serialized
-    }
-
-    return jsonify(response_body), 200
+    return jsonify({
+        'msg': f'Ingredientes del restaurante {restaurant_id}',
+        'ingredients': [i.serialize() for i in ingredients]
+    }), 200
 
 @ingr_bp.route('/ingredients/<int:ingredient_id>', methods=['PUT'])
 def update_ingredient(restaurant_id, ingredient_id):
@@ -170,8 +185,10 @@ def update_ingredient(restaurant_id, ingredient_id):
     
     updated = False
 
-    if 'name' in body and has_value(body.get('name')):  
+    if 'name' in body and has_value(body.get('name')):
+
         new_name = body['name'].strip()
+
         if not new_name:
             return jsonify({'msg': 'El nombre no puede estar vacío'}), 400
         
@@ -182,6 +199,7 @@ def update_ingredient(restaurant_id, ingredient_id):
                 Ingredients.name == new_name,
                 Ingredients.id != ingredient_id
             ).first()
+            
             if exist:
                 return jsonify({
                     'msg': 'Ya existe ese ingrediente en este restaurante'
@@ -190,8 +208,8 @@ def update_ingredient(restaurant_id, ingredient_id):
             ingredient.name = new_name
             updated = True
 
-    if 'image_url' in body and has_value(body.get('image_url')):
-        
+    if 'image_url' in body:
+
         val = body.get('image_url')
         ingredient.image_url = val.strip() if isinstance(val, str) and val.strip() else None
         updated = True
@@ -216,49 +234,48 @@ def update_ingredient(restaurant_id, ingredient_id):
 
     if 'price_per_unit' in body:
         
-        ppu = body.get('price_per_unit')
-        price_per_unit = float(ppu)
+        try:
+            new_price = _parse_price(body.get('price_per_unit'))
 
-        if price_per_unit < 0:
-            return jsonify({
-                'msg': 'El campo "price_per_unit" no puede ser negativo'
-                }), 400
-
-        if price_per_unit != float(ingredient.price_per_unit or 0):
-            ingredient.price_per_unit = price_per_unit
+        except ValueError as e:
+            return jsonify({'msg': str(e)}), 400
+        
+        if ingredient.price_per_unit is None or new_price != ingredient.price_per_unit:
+            ingredient.price_per_unit = new_price
             updated = True
 
     if 'id_product_api' in body:
         
-        id_product_api = body.get('id_product_api')
-        if id_product_api is None or id_product_api == '':
+        raw = body.get('id_product_api')
+        if raw is None or raw == '':
             if ingredient.id_product_api is not None:
                 ingredient.id_product_api = None
                 updated = True
         else:
-            id_api_int = int(id_product_api)
+            try:
+                id_api_int = int(raw)
+            except (TypeError, ValueError):
+                return jsonify({'msg': 'El campo "id_product_api" debe ser un entero'}), 400
 
             if id_api_int != ingredient.id_product_api:
-               exists_api = Ingredients.query.filter(
+                exists_api = Ingredients.query.filter(
                     Ingredients.id_product_api == id_api_int,
                     Ingredients.id != ingredient_id
-                ).first() 
-               
-               if exists_api:
-                    return jsonify({
-                        'msg': f'El id_product_api "{id_api_int}" ya está asociado a otro ingrediente'
-                        }), 400
-               
-               ingredient.id_product_api = id_api_int
-               updated = True
+                ).first()
+
+                if exists_api:
+                    return jsonify({'msg': f'El id_product_api "{id_api_int}" ya está asociado a otro ingrediente'}), 400
+                ingredient.id_product_api = id_api_int
+                updated = True
 
     if not updated:
         return jsonify({'msg': 'No se actualizaron todos los campos'}), 400
 
     db.session.commit()
+    
     return jsonify({
-        'msg': f'La categoria {ingredient_id} ha sido actualizada con exito',
-        'category': ingredient.serialize()
+        'msg': f'El ingrediente {ingredient_id} ha sido actualizado con éxito',
+        'ingredient': ingredient.serialize()
     }), 200    
 
 @ingr_bp.route('/ingredients/<int:ingredient_id>', methods=['DELETE'])
@@ -271,12 +288,12 @@ def delete_ingredient(restaurant_id, ingredient_id):
 
     if ingredient is None:
         return jsonify({
-            'msg': f'La categoria {ingredient_id} no existe en el restaurante {restaurant_id}'
+            'msg': f'El ingrediente {ingredient_id} no existe en el restaurante {restaurant_id}'
         }), 404
     
     db.session.delete(ingredient)
     db.session.commit()
     
     return jsonify({
-        'msg': f'La categoria con ID {ingredient_id} se ha borrado con exito en el restaurante con ID {restaurant_id}'
+        'msg': f'El ingrediente con ID {ingredient_id} se ha borrado con exito en el restaurante con ID {restaurant_id}'
     }), 200
