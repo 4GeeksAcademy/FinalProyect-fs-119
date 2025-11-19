@@ -54,7 +54,7 @@ export const Login = () => {
       if (!userId) throw new Error("No se pudo determinar el user_id tras el login.");
 
       localStorage.setItem("user_id", String(userId));
-      navigate("/");
+      navigate("/home");
 
     } catch (err) {
       setError(err.message);
@@ -141,5 +141,3 @@ export const Login = () => {
 
 };
 export default Login;
-
-t
