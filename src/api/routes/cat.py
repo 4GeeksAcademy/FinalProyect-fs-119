@@ -3,7 +3,7 @@ from ..models import db, Restaurant, User, Categories
 from flask_cors import CORS
 from api.extensions import  has_value
 
-cat_bp = Blueprint('cat', __name__, url_prefix='/api/user/<int:restaurant_id>')
+cat_bp = Blueprint('cat', __name__, url_prefix='/api/restaurant/<int:restaurant_id>')
 
 
 CORS(cat_bp)

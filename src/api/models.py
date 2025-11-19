@@ -281,7 +281,7 @@ class Dishes(db.Model):
         ING = Ingredients
 
         # used_qty = gross_weight * (1 - decrease_pct)
-        used_qty_sql = (DI.gross_weight * (1 - DI.decrease_pct))
+        used_qty_sql = DI.gross_weight * (1 - (DI.decrease_pct / 100.0))
 
         # CASE para normalizar precio por unidad a base (g/ml/ud)
         normalized_price_sql = case(
@@ -353,7 +353,7 @@ class DishIngredient(db.Model):
 
     __table_args__ = ( 
         CheckConstraint("gross_weight >= 0", name="ck_di_weight_nonnegative"),
-        CheckConstraint("decrease_pct >= 0 AND decrease_pct <= 1", name="ck_di_decrease_range"),
+        CheckConstraint("decrease_pct >= 0 AND decrease_pct <= 100", name="ck_di_decrease_range"),
         UniqueConstraint("dish_id", "ingredient_id", name="uq_di_dish_ingredient"),  
         Index("ix_di_dish_ing", "dish_id", "ingredient_id")
         )
@@ -371,13 +371,16 @@ class DishIngredient(db.Model):
 
     @hybrid_property
     def used_qty(self) -> float:
-        return float(self.gross_weight or 0) * (1 - float(self.decrease_pct or 0))
+        gw = float(self.gross_weight or 0)
+        dec = float(self.decrease_pct or 0)  
+
+        return gw * (1 - dec / 100.0)
 
     @used_qty.expression
     def used_qty(cls):
-        return (cls.gross_weight * (1 - cls.decrease_pct))
+        return cls.gross_weight * (1 - (cls.decrease_pct / 100.0))
 
-    # --- Hybrid: precio base aplicado a esta línea ---
+
     @hybrid_property
     def price_per_base_unit(self) -> float:
         if self.unit_price_snapshot is not None:
@@ -412,11 +415,15 @@ class DishIngredient(db.Model):
             "id": self.id,
             "dish_id": self.dish_id,
             "ingredient_id": self.ingredient_id,
+            "ingredient_name": self.ingredient.name if self.ingredient else None,
+            "ingredient_unit": self.ingredient.unit if self.ingredient else None,
+            "ingredient_price_per_unit": float(self.ingredient.price_per_unit or 0) if self.ingredient else None,
+            "ingredient_price_per_base_unit": float(self.ingredient.price_per_base_unit or 0) if self.ingredient else None,
             "gross_weight": float(self.gross_weight or 0),
             "decrease_pct": float(self.decrease_pct or 0),
             "unit_price_snapshot": float(self.unit_price_snapshot) if self.unit_price_snapshot is not None else None
         }
         if include_cost:
             data["used_qty"] = float(self.used_qty or 0)
-            data["lingredient_cost"] = float(self.ingredient_cost or 0)
+            data["ingredient_cost"] = float(self.ingredient_cost or 0)
         return data
