@@ -43,18 +43,40 @@ export const Register = () => {
   };
 
   return (
-    <div className="container d-flex justify-content-center align-items-center" style={{ minHeight: "100vh" }}>
+    <div
+      className="container d-flex justify-content-center align-items-center"
+      style={{
+        minHeight: "100vh",
+        backgroundImage: 'url("/Restaurante.jpg")',
+        backgroundSize: "cover",
+        backgroundPosition: "center",
+        backgroundRepeat: "no-repeat",
+      }}
+    >
       <div className="col-12 col-md-6 col-lg-4">
         <div className="card shadow-sm border-0">
-          <div className="card-header bg-dark text-white text-center">
+          <div
+            className="card-header text-white text-center"
+            style={{ backgroundColor: "rgb(75, 101, 135)" }}
+          >
             <h1 className="h4 mb-0">REGISTRO</h1>
           </div>
-          <div className="card-body">
-            {error && (
-              <div className="alert alert-danger py-2" role="alert">
-                {error}
-              </div>
-            )}
+          <div
+              className="card-body"
+              style={{
+                backgroundImage: 'url("/fondo.jpg")',
+                backgroundSize: "cover",
+                backgroundPosition: "center",
+                backgroundRepeat: "no-repeat",
+                backdropFilter: "blur(6px)",
+                borderRadius: "10px",
+              }}
+            >
+              {error && (
+                <div className="alert alert-danger py-2" role="alert">
+                  {error}
+                </div>
+              )}
 
             <form onSubmit={handleSignup} noValidate>
               <div className="mb-3">
@@ -111,6 +133,7 @@ export const Register = () => {
               <button
                 type="submit"
                 className="btn btn-primary w-100 mb-3"
+                style={{ backgroundColor: "rgb(59, 74, 99)"}}
                 disabled={loading}
               >
                 {loading ? "Creando..." : "REGISTRAR"}

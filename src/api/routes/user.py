@@ -44,15 +44,29 @@ def register_user():
     body = request.get_json(silent=True)
     if body is None:
         return jsonify({'msg': 'Debes enviar informacion en el body'}), 400
-    if 'email' not in body:
-        return jsonify({'msg': 'El campo email es obligatorio'}), 400
+    #if 'email' not in body:
+    #    return jsonify({'msg': 'El campo email es obligatorio'}), 400
     if 'name' not in body:
         return jsonify({'msg': 'Debes proporcionar un nombre'}), 400
     if 'password' not in body:
         return jsonify({'msg': 'Debes proporcionar una contraseña'}), 400
 
-    user = User(email=body["email"], password=generate_password_hash(
-        body["password"]), is_active=True, name=body["name"])
+    email = (body["email"] or "").strip().lower()
+    if not email:
+        return jsonify({'msg': 'El campo email es obligatorio'}), 400
+
+    if User.query.filter_by(email=email).first():
+        return jsonify({'msg': f'El email {email} ya está registrado'}), 400
+
+
+    user = User(
+        email=body["email"], 
+        password=generate_password_hash(body["password"]), 
+        is_active=True, 
+        name=body["name"],
+        telefono=body["telefono"],
+        direccion=body['direccion']
+        )
 
     db.session.add(user)
     db.session.commit()
