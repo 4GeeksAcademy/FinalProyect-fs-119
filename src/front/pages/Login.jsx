@@ -43,6 +43,7 @@ export const Login = () => {
       if (!res.ok) throw new Error(data.error || data.msg || "Error al iniciar sesión");
 
       localStorage.setItem("token", data.token);
+
       if (data.user) localStorage.setItem("user", JSON.stringify(data.user));
 
       let userId = data?.user?.id || data?.user?._id || null;
@@ -53,7 +54,8 @@ export const Login = () => {
       if (!userId) throw new Error("No se pudo determinar el user_id tras el login.");
 
       localStorage.setItem("user_id", String(userId));
-      navigate("/");
+      navigate("/home");
+
     } catch (err) {
       setError(err.message);
     } finally {
@@ -136,4 +138,6 @@ export const Login = () => {
       </div>
     </div>
   );
+
 };
+export default Login;
