@@ -1,28 +1,37 @@
-import {
-    createBrowserRouter,
-    createRoutesFromElements,
-    Route,
-} from "react-router-dom";
+import { createBrowserRouter, createRoutesFromElements, Route } from "react-router-dom";
+
 import { Layout } from "./pages/Layout";
-import { Home } from "./pages/Home";
-import { Single } from "./pages/Single";
-import { Demo } from "./pages/Demo";
-import { Login } from "./pages/Login";
-import { Register } from "./pages/Register";
-import { Restaurants } from "./pages/Restaurants";
+import LandingPage from "./pages/LandingPage";
+import Home from "./pages/Home";
+import Single from "./pages/Single";
+import Demo from "./pages/Demo";
+import Login from "./pages/Login";
+import Register from "./pages/Register";
+
+const ProtectedRoute = ({ children }) => {
+  const token = localStorage.getItem("token");
+
+  if (!token) {
+    return <Login />; 
+  }
+
+  return children;
+};
 
 export const router = createBrowserRouter(
-    createRoutesFromElements(
+  createRoutesFromElements(
+    <>
 
-      <Route path="/" element={<Layout />} errorElement={<h1>Not found!</h1>} >
-
-        {/* Nested Routes: Defines sub-routes within the BaseHome component. */}
-        <Route path= "/" element={<Home />} />
-        <Route path="/single/:theId" element={ <Single />} />  {/* Dynamic route for single items */}
-        <Route path="/demo" element={<Demo />} />
-        <Route path="/login" element={<Login />} />
-        <Route path="/register" element={<Register />} />
-        <Route path="/restaurants" element={<Restaurants />} />
+      <Route element={<Layout />}>
+        <Route index element={<LandingPage />} />
       </Route>
-    )
+
+      <Route path="/login" element={<Login />} />
+      <Route path="/register" element={<Register />} />
+
+      <Route path="/home" element={<ProtectedRoute> <Home /></ProtectedRoute>}/>
+      <Route path="/single/:theId" element={ <ProtectedRoute> <Single /></ProtectedRoute>} />
+      <Route path="/demo"element={<ProtectedRoute> <Demo /></ProtectedRoute>} />
+    </>
+  )
 );

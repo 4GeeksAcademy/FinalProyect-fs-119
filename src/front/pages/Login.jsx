@@ -29,7 +29,7 @@ export const Login = () => {
 
       localStorage.setItem("token", data.token);
       localStorage.setItem("user", JSON.stringify(data.user));
-      navigate("/");
+      navigate("/Home");
     } catch (err) {
       setError(err.message);
     } finally {
@@ -102,3 +102,4 @@ export const Login = () => {
     </div>
   );
 };
+export default Login;
