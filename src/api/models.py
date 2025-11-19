@@ -2,7 +2,9 @@ from __future__ import annotations
 from typing import List, Optional
 
 from flask_sqlalchemy import SQLAlchemy
-from sqlalchemy import String, Boolean, Numeric, ForeignKey, UniqueConstraint, CheckConstraint, Integer, Index, case, func, select
+from sqlalchemy import (
+    String, Boolean, Numeric, ForeignKey, UniqueConstraint, CheckConstraint, Integer, Index, case, func, select
+    )
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 from sqlalchemy.ext.hybrid import hybrid_property
 
@@ -54,7 +56,7 @@ class Restaurant(db.Model):
 
     id: Mapped[int] = mapped_column(primary_key=True)
     company_id: Mapped[int] = mapped_column(
-        ForeignKey('user.id'), 
+        ForeignKey('user.id', ondelete="CASCADE"), 
         nullable=False, 
         index=True
         )
@@ -83,6 +85,13 @@ class Restaurant(db.Model):
         single_parent=True,
         passive_deletes=True
         )
+    
+    dishes: Mapped[list["Dishes"]] = relationship(
+        back_populates="restaurant", 
+        cascade="all, delete-orphan", 
+        single_parent=True, 
+        passive_deletes=True
+    )
 
     __table_args__ = (
         Index("ix_restaurant_company_name", "company_id", "name"),
@@ -92,12 +101,13 @@ class Restaurant(db.Model):
         return f'Restaurant {self.name}'
 
     def serialize(self):
-        return {"id": self.id, 
-                "name": self.name, 
-                "company_id": self.company_id,
-                "telefono": self.telefono,
-                "direccion": self.direccion,  
-                "is_active": self.is_active
+        return {
+            "id": self.id, 
+            "name": self.name, 
+            "company_id": self.company_id,
+            "telefono": self.telefono,
+            "direccion": self.direccion,  
+            "is_active": self.is_active
                 }
 
 
@@ -106,7 +116,7 @@ class Categories(db.Model):
 
     id: Mapped[int] = mapped_column(primary_key=True)
     restaurant_id: Mapped[int] = mapped_column(
-        ForeignKey('restaurant.id'), 
+        ForeignKey('restaurant.id', ondelete='CASCADE'), 
         nullable=False, 
         index=True
         )
@@ -150,7 +160,7 @@ class Ingredients(db.Model):
     id_product_api: Mapped[int] = mapped_column(Integer, unique=True, nullable=True)
 
     restaurant_id: Mapped[int] = mapped_column(
-        ForeignKey('restaurant.id'), 
+        ForeignKey('restaurant.id', ondelete='CASCADE'), 
         nullable=False, 
         index=True
         )
@@ -178,6 +188,18 @@ class Ingredients(db.Model):
         single_parent=True,
         passive_deletes=True
         )
+    
+    @hybrid_property
+    def price_per_base_unit(self) -> float:
+        return _to_base_unit_price(self.unit, float(self.price_per_unit or 0))
+
+    @price_per_base_unit.expression
+    def price_per_base_unit(cls):
+        return case(
+            (cls.unit.in_(["kg", "l"]), cls.price_per_unit / 1000.0),
+            else_=cls.price_per_unit
+        )
+
 
     def __repr__(self) -> str:
         return f"Ingredient<{self.id}:{self.name} ({self.unit})>"
@@ -189,6 +211,7 @@ class Ingredients(db.Model):
             "name": self.name, 
             "unit": self.unit, 
             "price_per_unit": float(self.price_per_unit or 0),
+            "price_per_base_unit": float(self.price_per_base_unit or 0),
             "image_url": self.image_url, 
             "is_active": self.is_active
             }
@@ -196,28 +219,104 @@ class Ingredients(db.Model):
 
 class Dishes(db.Model):
     __tablename__= 'dishes'
+
     id: Mapped[int] = mapped_column(primary_key=True)
-    category_id: Mapped[int] = mapped_column(ForeignKey('categories.id'), nullable=False, index=True)
+    restaurant_id: Mapped[int] = mapped_column(
+        ForeignKey("restaurant.id", ondelete="CASCADE"), 
+        nullable=False, 
+        index=True
+        )
+    
+    category_id: Mapped[int] = mapped_column(
+        ForeignKey('categories.id', ondelete='CASCADE'), 
+        nullable=False, 
+        index=True
+        )
+    
     name: Mapped[str] = mapped_column(String(90), nullable=False)
-    description: Mapped[str] = mapped_column(String(300))
-    cost_price: Mapped[Numeric] = mapped_column(Numeric(10, 2), nullable=False)
-    sale_price: Mapped[Numeric] = mapped_column(Numeric(10, 2))
-    image_url: Mapped[str | None] = mapped_column(String(500), nullable=True)
+    description: Mapped[str] = mapped_column(String(300), nullable=True)
+    cost_price: Mapped[Optional[Numeric]] = mapped_column(
+        Numeric(10, 2), 
+        nullable=True
+        )
+    image_url: Mapped[Optional[str]] = mapped_column(String(500), nullable=True)
     is_active: Mapped[bool] = mapped_column(Boolean(), nullable=False, default=True)
 
     __table_args__ = (
         UniqueConstraint("category_id", "name", name="uq_dish_category_name"),
-    )
+        Index("ix_dish_category_name", "category_id", "name"),
+        Index("ix_dish_restaurant", "restaurant_id")
 
-    category: Mapped['Categories'] = relationship(back_populates='dishes')
-    ingredients: Mapped[list['DishIngredient']] = relationship(back_populates='dish', cascade='all, delete-orphan', single_parent=True)
+    )
+    restaurant: Mapped["Restaurant"] = relationship(
+        back_populates="dishes"
+        )
+    category: Mapped['Categories'] = relationship(
+        back_populates='dishes',
+        passive_deletes=True
+        )
+    ingredients: Mapped[list['DishIngredient']] = relationship(
+        back_populates='dish', 
+        cascade='all, delete-orphan', 
+        single_parent=True,
+        passive_deletes=True
+        )
 
     @hybrid_property    
-    def total_cost(self):
-        return sum(di.ingredient_cost for di in self.ingredients if di.ingredient_cost is not None)
+    def total_cost(self) -> float:
+        return sum(
+            (di.ingredient_cost or 0.0)
+            for di in self.ingredients
+            )
+    @total_cost.expression
+    def total_cost(cls):
+        """
+        SUM(
+          price_base * (gross_weight * (1 - decrease_pct))
+        )
+        con price_base = COALESCE(unit_price_snapshot, normalize(Ingredients.price_per_unit))
+        y normalize: divide entre 1000 si unidad es kg o l
+        """
+        DI = DishIngredient
+        ING = Ingredients
+
+        # used_qty = gross_weight * (1 - decrease_pct)
+        used_qty_sql = DI.gross_weight * (1 - (DI.decrease_pct / 100.0))
+
+        # CASE para normalizar precio por unidad a base (g/ml/ud)
+        normalized_price_sql = case(
+            (ING.unit.in_(["kg", "l"]), ING.price_per_unit / 1000.0),
+            else_=ING.price_per_unit
+        )
+
+        price_base_sql = func.coalesce(DI.unit_price_snapshot, normalized_price_sql)
+
+        return (
+            select(func.coalesce(func.sum(price_base_sql * used_qty_sql), 0.0))
+            .select_from(DI)
+            .join(ING, ING.id == DI.ingredient_id)
+            .where(DI.dish_id == cls.id)
+            .correlate(cls)
+            .scalar_subquery()
+        )
+
+    def __repr__(self) -> str:
+        return f"Dish<{self.id}:{self.name}>"
+
 
     def serialize(self, include_cost: bool = True):
-        data = {"id": self.id, "category_id": self.category_id, "name": self.name, "description": self.description, "cost_price": self.cost_price, "sale_price": self.sale_price, "image_url": self.image_url, "is_active": self.is_active}
+        data = {
+            "id": self.id,
+            "restaurant_id": self.restaurant_id, 
+            "category_id": self.category_id, 
+            "name": self.name, 
+            "description": self.description, 
+            "cost_price": float(self.cost_price or 0) 
+                if self.cost_price is not None else None, 
+            "image_url": self.image_url, 
+            "is_active": self.is_active
+            }
+        
         if include_cost:
             data['total_cost'] = float(self.total_cost or 0)
         return data
@@ -225,52 +324,106 @@ class Dishes(db.Model):
 
 class DishIngredient(db.Model):
     __tablename__= 'dish_ingredient'
+
     id: Mapped[int] = mapped_column(primary_key=True)
-    dish_id: Mapped[int] = mapped_column(ForeignKey('dishes.id'), nullable=False, index=True)
-    ingredient_id: Mapped[int] = mapped_column(ForeignKey('ingredients.id'), nullable=False, index=True)
+    dish_id: Mapped[int] = mapped_column(
+        ForeignKey('dishes.id', ondelete="CASCADE"), 
+        nullable=False, 
+        index=True
+        )
+    
+    ingredient_id: Mapped[int] = mapped_column(
+        ForeignKey('ingredients.id', ondelete="RESTRICT"), 
+        nullable=False, 
+        index=True
+        )
 
-    gross_weight: Mapped[Numeric] = mapped_column(Numeric(10, 4), nullable=False) 
-    decrease_pct: Mapped[Numeric] = mapped_column(Numeric(5, 4), nullable=False, default=0)
-    unit_price_snapshot: Mapped[Numeric | None] = mapped_column(Numeric(10, 4), nullable=True)
+    gross_weight: Mapped[Numeric] = mapped_column(
+        Numeric(10, 4), 
+        nullable=False
+        )
 
-    __table_args__ = (
+    decrease_pct: Mapped[Numeric] = mapped_column(
+        Numeric(5, 4), 
+        nullable=False, 
+        default=0
+        )
+
+    unit_price_snapshot: Mapped[Optional[Numeric]] = mapped_column(Numeric(10, 4), nullable=True)
+
+    __table_args__ = ( 
         CheckConstraint("gross_weight >= 0", name="ck_di_weight_nonnegative"),
-        CheckConstraint("decrease_pct >= 0 AND decrease_pct <= 1", name="ck_di_decrease_range")
-    )
+        CheckConstraint("decrease_pct >= 0 AND decrease_pct <= 100", name="ck_di_decrease_range"),
+        UniqueConstraint("dish_id", "ingredient_id", name="uq_di_dish_ingredient"),  
+        Index("ix_di_dish_ing", "dish_id", "ingredient_id")
+        )
+            
 
-    dish: Mapped['Dishes'] = relationship(back_populates='ingredients')
-    ingredient: Mapped['Ingredients'] = relationship(back_populates="dish_ingredients")
+    dish: Mapped['Dishes'] = relationship(
+        back_populates='ingredients',
+        passive_deletes=True
+        )
+    
+    ingredient: Mapped['Ingredients'] = relationship(
+        back_populates="dish_ingredients",
+        passive_deletes=True
+        )
 
     @hybrid_property
     def used_qty(self) -> float:
         gw = float(self.gross_weight or 0)
-        dec = float(self.decrease_pct or 0)
-        return gw * (1 - dec)
+        dec = float(self.decrease_pct or 0)  
+
+        return gw * (1 - dec / 100.0)
+
+    @used_qty.expression
+    def used_qty(cls):
+        return cls.gross_weight * (1 - (cls.decrease_pct / 100.0))
+
 
     @hybrid_property
-    def unit_price_effective(self) -> float:
-        unit = (self.ingredient.unit or '').lower()
-        price = self.unit_price_effective
-        if unit in ('kg', 'l'):
-            return price / 1000.0
-        # 'g', 'ml', 'ud' ya es base
-        return price
+    def price_per_base_unit(self) -> float:
+        if self.unit_price_snapshot is not None:
+            return float(self.unit_price_snapshot or 0)
+        return _to_base_unit_price(self.ingredient.unit, float(self.ingredient.price_per_unit or 0))
 
+    @price_per_base_unit.expression
+    def price_per_base_unit(cls):
+        ING = Ingredients
+        normalized_price_sql = case(
+            (ING.unit.in_(["kg", "l"]), ING.price_per_unit / 1000.0),
+            else_=ING.price_per_unit
+        )
+        return func.coalesce(cls.unit_price_snapshot, normalized_price_sql)
+
+    # --- Hybrid: coste de la línea ---
     @hybrid_property
     def ingredient_cost(self) -> float:
-        """Coste de esta línea de ingrediente en el plato."""
-        return (self.price_per_base_qty or 0) * (self.used_qty or 0)
-    
+        return float(self.used_qty or 0) * float(self.price_per_base_unit or 0)
+
+    @ingredient_cost.expression
+    def ingredient_cost(cls):
+        return cls.used_qty * cls.price_per_base_unit  # usa las .expression de arriba
+
+
+    def __repr__(self) -> str:
+        return f"DI<{self.id}: dish={self.dish_id}, ing={self.ingredient_id}>"
+
+
     def serialize(self, include_cost: bool = True):
         data = {
             "id": self.id,
             "dish_id": self.dish_id,
             "ingredient_id": self.ingredient_id,
+            "ingredient_name": self.ingredient.name if self.ingredient else None,
+            "ingredient_unit": self.ingredient.unit if self.ingredient else None,
+            "ingredient_price_per_unit": float(self.ingredient.price_per_unit or 0) if self.ingredient else None,
+            "ingredient_price_per_base_unit": float(self.ingredient.price_per_base_unit or 0) if self.ingredient else None,
             "gross_weight": float(self.gross_weight or 0),
             "decrease_pct": float(self.decrease_pct or 0),
             "unit_price_snapshot": float(self.unit_price_snapshot) if self.unit_price_snapshot is not None else None
         }
         if include_cost:
             data["used_qty"] = float(self.used_qty or 0)
-            data["lingredient_cost"] = float(self.ingredient_cost or 0)
+            data["ingredient_cost"] = float(self.ingredient_cost or 0)
         return data

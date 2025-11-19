@@ -13,6 +13,8 @@ import api.routes.user as api_user
 import api.routes.rest as api_rest
 import api.routes.cat as api_cat
 import api.routes.ingr as api_ingr
+import api.routes.dish as api_dish
+import api.routes.dising as api_dising
 
 from flask_mail import Mail
 
@@ -60,6 +62,8 @@ app.register_blueprint(api_user.auth_bp, url_prefix='/api/user')
 app.register_blueprint(api_rest.rest_bp)
 app.register_blueprint(api_cat.cat_bp)
 app.register_blueprint(api_ingr.ingr_bp)
+app.register_blueprint(api_dish.dish_bp)
+app.register_blueprint(api_dising.dising_bp)
 
 @app.errorhandler(APIException)
 def handle_invalid_usage(error):

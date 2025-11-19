@@ -3,7 +3,7 @@ import os
 from flask_admin import Admin
 from .models import db, User, Restaurant, Categories, Ingredients, Dishes, DishIngredient
 from flask_admin.contrib.sqla import ModelView
-
+from typing import Any
 
 def user_label(u: User):
     return f"{u.email} (id={u.id})"
@@ -74,32 +74,39 @@ class IngredientsModelView(ModelView):
 
 
 class DishesModelView(ModelView):
-    column_list = ['id', 'name', 'category', 'description', 'cost_price', 'sale_price', 'image_url', 'is_active']
-    column_labels = {'category': 'Category'}
-    column_searchable_list = ['name', 'category.name', 'description']
-    column_filters = ['category.name', 'is_active']
+    column_list = ['id', 'name', 'restaurant', 'category', 'description', 'cost_price', 'image_url', 'is_active']
+    column_labels = {'restaurant': 'Restaurant', 'category': 'Category'}
+    column_searchable_list = ['name', 'category.name', 'description', 'restaurant.name']
+    column_filters = ['restaurant.name', 'category.name', 'is_active']
 
-    form_columns = ['category', 'name', 'description', 'cost_price', 'sale_price', 'image_url', 'is_active']
+    form_columns = ['restaurant', 'category', 'name', 'description', 'cost_price', 'image_url', 'is_active']
 
     form_ajax_refs = {
-        'category': {
-            'fields': ('name',),
-        }
+        'restaurant': { 'fields': ('name',) },
+        'category':   { 'fields': ('name',) }
+    }
+
+    column_formatters = {
+        'cost_price': lambda view, context, model, name: (
+            f"{float(model.total_cost or 0):.4f}"
+        )
     }
 
 
 class DishIngredientModelView(ModelView):
     column_list = [
         'id', 'dish', 'ingredient', 'gross_weight',
-        'decrease_pct', 'unit_price_snapshot'
+        'decrease_pct', 'ingredient_cost','unit_price_snapshot'
     ]
     column_labels = {
         'dish': 'Dish',
         'ingredient': 'Ingredient',
         'gross_weight': 'Gross Qty',
-        'decrease_pct': 'Merma (0..1)',
-        'unit_price_snapshot': 'Unit Price (snapshot)'
+        'decrease_pct': 'Merma (%)',
+        'ingredient_cost': 'Line Cost (€)',
+        'unit_price_snapshot': 'Unit Price (snapshot €/base)',
     }
+
     column_searchable_list = ['dish.name', 'ingredient.name']
     column_filters = ['dish.name', 'ingredient.name']
 
@@ -114,6 +121,17 @@ class DishIngredientModelView(ModelView):
         'ingredient': {
             'fields': ('name',),
         }
+    }
+
+    column_formatters = {
+        'unit_price_snapshot': (
+            lambda view, context, model, name:
+            f"{float(model.unit_price_snapshot or model.price_per_base_unit or 0):.4f}"
+        ),
+        'ingredient_cost': (
+            lambda view, context, model, name:
+            f"{float(model.ingredient_cost or 0):.4f}"
+        ),
     }
 
 
