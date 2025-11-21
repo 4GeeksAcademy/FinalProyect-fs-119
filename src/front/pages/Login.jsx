@@ -3,6 +3,7 @@ import { useNavigate, Link } from "react-router-dom";
 
 export const Login = () => {
   const navigate = useNavigate();
+
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
@@ -34,40 +35,62 @@ export const Login = () => {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          email: email.trim(),
+          email: email.trim().toLowerCase(),
           password: password.trim(),
         }),
       });
 
       const data = await res.json();
-      if (!res.ok) throw new Error(data.error || data.msg || "Error al iniciar sesión");
 
-      localStorage.setItem("token", data.token);
+      if (!res.ok) {
+        throw new Error(data.error || data.msg || "Error al iniciar sesión");
+      }
 
-      if (data.user) localStorage.setItem("user", JSON.stringify(data.user));
+      // Guarda token
+      if (data.token) {
+        localStorage.setItem("token", data.token);
+      }
 
+      // Guarda usuario serializado si viene del backend
+      if (data.user) {
+        localStorage.setItem("user", JSON.stringify(data.user));
+      }
+
+      // Intentar obtener user_id coherente con tu backend
       let userId = data?.user?.id || data?.user?._id || null;
+
       if (!userId && data?.token) {
         const payload = decodeJwtPayload(data.token);
+        // En tu backend, identity es el email (sub), no el id.
+        // Esto es solo un fallback, por si cambias el token en el futuro.
         userId = payload?.id || payload?.user_id || payload?.sub || null;
       }
-      if (!userId) throw new Error("No se pudo determinar el user_id tras el login.");
+
+      if (!userId) {
+        throw new Error("No se pudo determinar el user_id tras el login.");
+      }
 
       localStorage.setItem("user_id", String(userId));
-      navigate("/home");
 
+      navigate("/home");
     } catch (err) {
-      setError(err.message);
+      setError(err.message || "Error al iniciar sesión");
     } finally {
       setLoading(false);
     }
   };
 
   return (
-    <div className="container d-flex justify-content-center align-items-center" style={{ minHeight: "100vh" }}>
+    <div
+      className="container d-flex justify-content-center align-items-center"
+      style={{ minHeight: "100vh" }}
+    >
       <div className="col-12 col-md-6 col-lg-4">
         <div className="card shadow-sm border-0">
-          <div className="card-header text-white text-center" style={{ backgroundColor: "rgb(75, 101, 135)" }}>
+          <div
+            className="card-header text-white text-center"
+            style={{ backgroundColor: "rgb(75, 101, 135)" }}
+          >
             <h1 className="h4 mb-0">LOGIN</h1>
           </div>
           <div
@@ -89,7 +112,9 @@ export const Login = () => {
 
             <form onSubmit={handleLogin} noValidate>
               <div className="mb-3">
-                <label htmlFor="email" className="form-label">Email</label>
+                <label htmlFor="email" className="form-label">
+                  Email
+                </label>
                 <input
                   id="email"
                   type="email"
@@ -102,7 +127,9 @@ export const Login = () => {
               </div>
 
               <div className="mb-3">
-                <label htmlFor="password" className="form-label">Password</label>
+                <label htmlFor="password" className="form-label">
+                  Password
+                </label>
                 <input
                   id="password"
                   type="password"
@@ -138,6 +165,6 @@ export const Login = () => {
       </div>
     </div>
   );
-
 };
+
 export default Login;
