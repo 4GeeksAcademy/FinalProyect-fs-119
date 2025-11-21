@@ -9,6 +9,7 @@ const RestaurantList = ({ restaurants, onDelete, onSelect }) => {
             className="shadow-sm"
             style={{ backgroundColor: "#F0E5CF", color: "#4B6587", cursor: "pointer" }}
             onClick={() => onSelect(r)}
+            onSelect={(r) => selectRestaurant(r)}
           >
             <Card.Body>
               <Card.Title>{r.name}</Card.Title>
