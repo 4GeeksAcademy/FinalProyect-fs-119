@@ -1,9 +1,12 @@
 import { Row, Col, Card, Button } from "react-bootstrap";
 
-const CategoryList = ({ categories, onDelete }) => {
+const CategoryList = ({ categories = [], onDelete }) => {
+  // Filtramos valores inválidos
+  const safeCategories = categories.filter(cat => cat && cat.name);
+
   return (
     <Row className="g-3 mb-5">
-      {categories.map((cat) => (
+      {safeCategories.map((cat) => (
         <Col key={cat.id} xs={6} md={3} lg={2}>
           <Card
             className="text-center p-3 shadow-sm"
@@ -20,11 +23,10 @@ const CategoryList = ({ categories, onDelete }) => {
                   fontSize: "18px",
                 }}
               >
-                {cat.name[0].toUpperCase()}
+                {cat.name[0]?.toUpperCase() || "?"}
               </div>
-              <Card.Title>{cat.name}</Card.Title>
+              <Card.Title>{cat.name || "Sin nombre"}</Card.Title>
 
-              
               {onDelete && (
                 <Button
                   variant="danger"
