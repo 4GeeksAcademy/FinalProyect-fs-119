@@ -1,7 +1,7 @@
 import React from "react";
 import { Card, Button } from "react-bootstrap";
 
-const IngredientList = ({ ingredients, onDelete }) => {
+const IngredientList = ({ ingredients, onDelete,onSelect }) => {
   return (
     <div>
       <div className="row">
@@ -10,8 +10,7 @@ const IngredientList = ({ ingredients, onDelete }) => {
             <Card
             className="shadow-sm"
             style={{ backgroundColor: "#F0E5CF", color: "#4B6587", cursor: "pointer" }}
-            onClick={() => onSelect(r)}
-            onSelect={(r) => selectRestaurant(r)}
+            
           >
               <Card.Body>
                 <Card.Title>{ing.name}</Card.Title>

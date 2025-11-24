@@ -273,6 +273,7 @@ const deleteIngredient = async (id) => {
             <IngredientList
               ingredients={currentRestaurant.ingredients || []}
               onDelete={deleteIngredient}
+              
             />
           </div>
         )}
