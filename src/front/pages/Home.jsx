@@ -146,25 +146,33 @@ const Home = () => {
   };
 
   
-  const loadIngredients = async () => {
-    if (!currentRestaurant) return;
-    try {
-      const res = await fetch(`${API_URL}/api/restaurant/${currentRestaurant.id}/ingredients`);
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.msg || "Error al cargar ingredientes");
-      setCurrentRestaurant({ ...currentRestaurant, ingredients: data.ingredients });
-    } catch (err) {
-      console.error(err);
+ const loadIngredients = async () => {
+  if (!currentRestaurant) return;
+  try {
+    const res = await fetch(
+      `${API_URL}/api/restaurant/${currentRestaurant.id}/ingredients`
+    );
+    if (!res.ok) {
+      const text = await res.text();
+      throw new Error(`HTTP ${res.status}: ${text}`);
     }
-  };
+    const data = await res.json();
+    setCurrentRestaurant({
+      ...currentRestaurant,
+      ingredients: data.ingredients || [],
+    });
+  } catch (err) {
+    console.error("Error cargando ingredientes:", err);
+  }
+};
 
-  
+
 const saveIngredient = async (ingredientData) => {
   if (!currentRestaurant) return;
 
   try {
     const res = await fetch(
-      `${API_URL}/restaurant/<int:restaurant_id>/ingredients`,
+      `${API_URL}/api/restaurant/${currentRestaurant.id}/ingredients`,
       {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -172,43 +180,45 @@ const saveIngredient = async (ingredientData) => {
       }
     );
 
+    if (!res.ok) {
+      const text = await res.text();
+      throw new Error(`HTTP ${res.status}: ${text}`);
+    }
+
     const data = await res.json();
-    if (!res.ok) throw new Error(data.msg || "Error al crear ingrediente");
+    console.log("Ingrediente creado:", data);
 
     
-    const resIngredients = await fetch(
-      `${API_URL}/api/restaurant/<int:restaurant_id>/ingredients`
-    );
-    const dataIngredients = await resIngredients.json();
-
-    setCurrentRestaurant({
-      ...currentRestaurant,
-      ingredients: dataIngredients.ingredients || [],
-    });
+    await loadIngredients();
 
     setShowIngredientModal(false);
   } catch (err) {
     console.error("Error creando ingrediente:", err);
-    alert(err.message);
+    alert("No se pudo crear el ingrediente. Revisa la consola.");
   }
 };
 
-  
-  const deleteIngredient = async (id) => {
-    try {
-      const res = await fetch(
-        `${API_URL}/api/restaurant/${currentRestaurant.id}/ingredients/${id}`,
-        { method: "DELETE" }
-      );
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.msg || "Error eliminando ingrediente");
-      await loadIngredients();
-    } catch (err) {
-      console.error(err);
-      alert(err.message);
-    }
-  };
 
+const deleteIngredient = async (id) => {
+  if (!currentRestaurant) return;
+
+  try {
+    const res = await fetch(
+      `${API_URL}/api/restaurant/${currentRestaurant.id}/ingredients/${id}`,
+      { method: "DELETE" }
+    );
+
+    if (!res.ok) {
+      const text = await res.text();
+      throw new Error(`HTTP ${res.status}: ${text}`);
+    }
+
+    await loadIngredients();
+  } catch (err) {
+    console.error("Error eliminando ingrediente:", err);
+    alert("No se pudo eliminar el ingrediente.");
+  }
+};
   return (
     <div className="d-flex" style={{ minHeight: "100vh", backgroundColor: "#F0E5CF" }}>
       <Sidebar
