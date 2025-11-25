@@ -46,23 +46,18 @@ export const Login = () => {
         throw new Error(data.error || data.msg || "Error al iniciar sesión");
       }
 
-      // Guarda token
       if (data.token) {
         localStorage.setItem("token", data.token);
       }
 
-      // Guarda usuario serializado si viene del backend
       if (data.user) {
         localStorage.setItem("user", JSON.stringify(data.user));
       }
 
-      // Intentar obtener user_id coherente con tu backend
       let userId = data?.user?.id || data?.user?._id || null;
 
       if (!userId && data?.token) {
         const payload = decodeJwtPayload(data.token);
-        // En tu backend, identity es el email (sub), no el id.
-        // Esto es solo un fallback, por si cambias el token en el futuro.
         userId = payload?.id || payload?.user_id || payload?.sub || null;
       }
 
@@ -71,7 +66,6 @@ export const Login = () => {
       }
 
       localStorage.setItem("user_id", String(userId));
-
       navigate("/home");
     } catch (err) {
       setError(err.message || "Error al iniciar sesión");
@@ -82,26 +76,41 @@ export const Login = () => {
 
   return (
     <div
-      className="container d-flex justify-content-center align-items-center"
-      style={{ minHeight: "100vh" }}
+      className="container-fluid d-flex justify-content-center align-items-center"
+      style={{
+        minHeight: "100vh",
+        backgroundImage: 'url("/mesa.jpg")',
+        backgroundSize: "cover",
+        backgroundPosition: "center",
+        backgroundRepeat: "no-repeat",
+      }}
     >
       <div className="col-12 col-md-6 col-lg-4">
-        <div className="card shadow-sm border-0">
+        
+        {/* CARD TRANSPARENTE */}
+        <div
+          className="card shadow-sm border-0"
+          style={{
+            background: "rgba(255, 255, 255, 0.20)",  // transparencia 20%
+            backdropFilter: "blur(6px)",
+            WebkitBackdropFilter: "blur(6px)",         // Safari
+            borderRadius: "15px",
+            overflow: "hidden",                        // quita halos del blur
+          }}
+        >
           <div
             className="card-header text-white text-center"
-            style={{ backgroundColor: "rgb(75, 101, 135)" }}
+            style={{
+              backgroundColor: "rgba(75, 101, 135, 0.85)", // header opaco
+            }}
           >
             <h1 className="h4 mb-0">LOGIN</h1>
           </div>
+
           <div
             className="card-body"
             style={{
-              backgroundImage: 'url("/fondo.jpg")',
-              backgroundSize: "cover",
-              backgroundPosition: "center",
-              backgroundRepeat: "no-repeat",
-              backdropFilter: "blur(6px)",
-              borderRadius: "10px",
+              background: "transparent",   // importante
             }}
           >
             {error && (
@@ -143,7 +152,7 @@ export const Login = () => {
 
               <button
                 type="submit"
-                className="btn btn-primary w-100"
+                className="btn w-100 text-white"
                 style={{ backgroundColor: "rgb(59, 74, 99)" }}
                 disabled={loading}
               >
@@ -151,12 +160,13 @@ export const Login = () => {
               </button>
             </form>
 
-            <div className="text-center mb-2">
+            <div className="text-center mb-2 mt-3">
               <Link to="/reset-password" className="text-decoration-none">
                 ¿Olvidaste tu contraseña?
               </Link>
             </div>
-            <div className="text-center mt-3">
+
+            <div className="text-center mt-2">
               <span className="text-muted me-1">¿No tienes cuenta?</span>
               <Link to="/register">Regístrate</Link>
             </div>
