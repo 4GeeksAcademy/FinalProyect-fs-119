@@ -64,8 +64,8 @@ def register_user():
         password=generate_password_hash(body["password"]), 
         is_active=True, 
         name=body["name"],
-        telefono=body["telefono"],
-        direccion=body['direccion']
+       
+       
         )
 
     db.session.add(user)

@@ -19,9 +19,50 @@ def _to_base_unit_price(unit: Optional[str], price_per_unit: float) -> float:
     
     return p
 
+"""Youtube --> Dia 44 - Recuperación de Contraseña por correo pt1 min:24:00
+
+class PasswordResetToken(db.Model)
+    __tablename__ = "password_reset_token"
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    user_id: Mapped[int] = mapped_column(
+        ForeignKey('user.id', ondelete='CASCADE),
+        nullable=False,
+        index=True
+    )
+    token: Mapped[str] = mapped_column(String(128), nullable=False, unique=True, index=True)
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), 
+        server_default=func.now(), 
+        nullable=False
+    )
+    expires_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
+    used: Mapped[bool] = mapped_column(Boolean(), nullable=False, default=False)
+
+    user: Mapped['User'] = relationship('User', backref='password_reset_tokens')
+
+    def is_valid(self) -> bool:
+        now = datetime.now(timezone.utc)
+        return (not self.used) and (self.expires_at > now)
+    
+
+    def __repr__(self):
+        return f'password_reset_token {self.id}'
+
+    def serialize(self):
+        return {"id": self.id,
+                "user_id": self.user_id 
+                "token": self.token,
+                "created_at": self.created_at, 
+                "expires_at": self.expires_at,
+
+                }
+
+        
+"""
 
 class User(db.Model):
-    __tablename__ = "user"
+    __tablename__ = "user" 
 
     id: Mapped[int] = mapped_column(primary_key=True)
     name: Mapped[str]= mapped_column(String(90), nullable=True)
