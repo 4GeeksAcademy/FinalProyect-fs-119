@@ -4,9 +4,11 @@ from werkzeug.security import generate_password_hash, check_password_hash
 from datetime import timedelta
 from ..models import db, User
 from flask_cors import CORS
-from api.extensions import has_value
+from api.extensions import has_value, mail
+from flask_mail import Message
+import os
 
-auth_bp = Blueprint('api/user', __name__)
+auth_bp = Blueprint('/api/user', __name__)
 
 #---Incorporacion nueva para campos vacios en PUT ---VALIDAR HORACIO------
 #def has_value(value):
@@ -14,6 +16,28 @@ auth_bp = Blueprint('api/user', __name__)
 #--------------------------------------------------------------------------------
 
 CORS(auth_bp)
+
+url_front = os.getenv("FRONTEND_URL")
+
+
+@auth_bp.route('/reset-password', methods=['POST'])
+def reset_password():
+    body = request.get_json(silent=True)
+    email = (body["email"] or "").strip().lower()
+    reset_email_password = f"{url_front}resetPassword/hrdiqweh"
+
+    msg = Message(
+        'Prueba de email',
+        html=f"<p>para restablecer la contraseña, da click <a href={reset_email_password}>aqui</a> </p>",
+        recipients=[email],
+        sender='setadish@gmail.com',
+    )
+    mail.send(msg)
+
+    return jsonify({
+        'msg': 'Correo enviado correctamente',
+    }), 200
+
 
 
 @auth_bp.route('/login', methods=['POST'])
