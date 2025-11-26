@@ -164,7 +164,7 @@ const saveIngredient = async (ingredientData) => {
 
   try {
     const res = await fetch(
-      `${API_URL}/restaurant/<int:restaurant_id>/ingredients`,
+      `${API_URL}/api/restaurant/${currentRestaurant.id}/ingredients`,
       {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -177,7 +177,7 @@ const saveIngredient = async (ingredientData) => {
 
     
     const resIngredients = await fetch(
-      `${API_URL}/api/restaurant/<int:restaurant_id>/ingredients`
+      `${API_URL}/api/restaurant/${currentRestaurant.id}/ingredients`
     );
     const dataIngredients = await resIngredients.json();
 

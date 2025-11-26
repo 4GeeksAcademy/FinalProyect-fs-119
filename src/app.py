@@ -15,7 +15,6 @@ import api.routes.cat as api_cat
 import api.routes.ingr as api_ingr
 import api.routes.dish as api_dish
 import api.routes.dising as api_dising
-import api.routes.password as api_password
 
 from flask_mail import Message
 
@@ -37,7 +36,7 @@ app.config.update(dict(
 
 ))
 
-mail = Mail(app)
+#mail = Mail(app)
 
 # JWT config
 app.config["JWT_SECRET_KEY"] = os.getenv("JWT_SECRET_KEY", "supersecretkey")
@@ -74,7 +73,6 @@ app.register_blueprint(api_cat.cat_bp)
 app.register_blueprint(api_ingr.ingr_bp)
 app.register_blueprint(api_dish.dish_bp)
 app.register_blueprint(api_dising.dising_bp)
-#app.register_blueprint(api_password.password_bp)
 
 @app.errorhandler(APIException)
 def handle_invalid_usage(error):
@@ -95,7 +93,7 @@ def serve_any_other_file(path):
     response = send_from_directory(static_file_dir, path)
     response.cache_control.max_age = 0
     return response
-
+"""""
 @app.route('/api/send-mail', methods=['GET'])
 def send_mail():
     msg = Message(
@@ -111,7 +109,7 @@ def send_mail():
     return jsonify({'msg': 'Correo enviado satisfactoriamente'})
 
 
-
+"""
 
 
 if __name__ == '__main__':
