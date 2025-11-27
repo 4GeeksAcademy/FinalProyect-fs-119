@@ -8,13 +8,27 @@ export const NavbarUser = () => {
       className="navbar navbar-expand-lg navbar-dark sticky-top shadow-sm"
       style={{ backgroundColor: "#4B6587" }}
     >
-      <div className="container-fluid">
+      <div className="container-fluid d-flex align-items-center">
         <a
-          className="navbar-brand fs-2 fw-bold"
           href="/home"
-          style={{ fontFamily: "sans-serif Klavika", color: "#2ce8ff" }}
+          className="navbar-brand d-flex align-items-center text-decoration-none me-3"
         >
-          setameal
+          <img
+            src="/logo.jpg"
+            alt="Logo"
+            style={{ height: "36px", display: "block", marginBottom: "-4px" }}
+          />
+          <span
+            className="fs-2 fw-bold"
+            style={{
+              fontFamily: "Klavika, sans-serif",
+              color: "#2ce8ff",
+              lineHeight: 1,
+              letterSpacing: "-1px",
+            }}
+          >
+            setameal
+          </span>
         </a>
 
         <button
@@ -44,6 +58,7 @@ export const NavbarUser = () => {
                 Platos
               </a>
             </li>
+
             <li className="nav-item dropdown mx-2">
               <a
                 className="nav-link dropdown-toggle text-white fw-semibold"
@@ -55,7 +70,10 @@ export const NavbarUser = () => {
               >
                 Perfil
               </a>
-              <ul className="dropdown-menu dropdown-menu-end" aria-labelledby="perfilDropdown">
+              <ul
+                className="dropdown-menu dropdown-menu-end"
+                aria-labelledby="perfilDropdown"
+              >
                 <li>
                   <a className="dropdown-item" href="/profile">
                     Ver perfil
@@ -76,7 +94,6 @@ export const NavbarUser = () => {
                 </li>
               </ul>
             </li>
-
           </ul>
         </div>
       </div>

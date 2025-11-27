@@ -86,22 +86,20 @@ export const Login = () => {
       }}
     >
       <div className="col-12 col-md-6 col-lg-4">
-        
-        {/* CARD TRANSPARENTE */}
         <div
           className="card shadow-sm border-0"
           style={{
-            background: "rgba(255, 255, 255, 0.20)",  // transparencia 20%
+            background: "rgba(255, 255, 255, 0.20)",
             backdropFilter: "blur(6px)",
-            WebkitBackdropFilter: "blur(6px)",         // Safari
+            WebkitBackdropFilter: "blur(6px)",
             borderRadius: "15px",
-            overflow: "hidden",                        // quita halos del blur
+            overflow: "hidden",
           }}
         >
           <div
             className="card-header text-white text-center"
             style={{
-              backgroundColor: "rgba(75, 101, 135, 0.85)", // header opaco
+              backgroundColor: "rgba(75, 101, 135, 0.85)",
             }}
           >
             <h1 className="h4 mb-0">LOGIN</h1>
@@ -110,7 +108,7 @@ export const Login = () => {
           <div
             className="card-body"
             style={{
-              background: "transparent",   // importante
+              background: "transparent",
             }}
           >
             {error && (
