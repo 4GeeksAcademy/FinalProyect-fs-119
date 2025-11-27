@@ -1,3 +1,4 @@
+import { nominalTypeHack } from "prop-types";
 import React, { useState } from "react";
 import { useNavigate, Link } from "react-router-dom";
 
@@ -47,7 +48,6 @@ export const Register = () => {
         throw new Error(data.error || data.msg || "Error al registrarse");
       }
 
-      // Registro correcto → ir a login
       navigate("/login");
     } catch (err) {
       setError(err.message || "Error al registrarse");
@@ -58,18 +58,24 @@ export const Register = () => {
 
   return (
     <div
-      className="container d-flex justify-content-center align-items-center"
+      className="container-fluid d-flex justify-content-center align-items-center"
       style={{
         minHeight: "100vh",
-        backgroundImage: 'url("/Restaurante.jpg")',
+        backgroundImage: 'url("/mesa.jpg")',
         backgroundSize: "cover",
         backgroundPosition: "center",
         backgroundRepeat: "no-repeat",
       }}
     >
       <div className="col-12 col-md-6 col-lg-4">
-        <div className="card shadow-sm border-0">
-          <div
+      <div
+        className="card shadow-sm border-0"
+        style={{
+          background: "rgba(255, 255, 255, 0.20)",  
+          backdropFilter: "blur(4px)",              
+        }}
+      > 
+         <div
             className="card-header text-white text-center"
             style={{ backgroundColor: "rgb(75, 101, 135)" }}
           >
@@ -78,12 +84,9 @@ export const Register = () => {
           <div
             className="card-body"
             style={{
-              backgroundImage: 'url("/fondo.jpg")',
-              backgroundSize: "cover",
-              backgroundPosition: "center",
-              backgroundRepeat: "no-repeat",
-              backdropFilter: "blur(6px)",
+              backdropFilter: "blur(4px)",
               borderRadius: "10px",
+              background: "transparent",
             }}
           >
             {error && (
@@ -184,7 +187,10 @@ export const Register = () => {
               <button
                 type="submit"
                 className="btn btn-primary w-100 mb-3"
-                style={{ backgroundColor: "rgb(59, 74, 99)" }}
+                style={{ backgroundColor: "rgb(59, 74, 99)",
+                  border: "none",
+                  boxShadow: "none"
+                 }}
                 disabled={loading}
               >
                 {loading ? "Creando..." : "REGISTRAR"}
