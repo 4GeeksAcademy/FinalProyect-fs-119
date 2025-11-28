@@ -7,7 +7,8 @@ from flask_cors import CORS
 from api.extensions import has_value, mail
 from flask_mail import Message
 import os
-
+from itsdangerous import URLSafeTimedSerializer
+import re
 auth_bp = Blueprint('/api/user', __name__)
 
 #---Incorporacion nueva para campos vacios en PUT ---VALIDAR HORACIO------
@@ -17,14 +18,21 @@ auth_bp = Blueprint('/api/user', __name__)
 
 CORS(auth_bp)
 
-url_front = os.getenv("FRONTEND_URL")
+url_front = os.getenv("FRONTEND_URL").rstrip("/")   
 
 
 @auth_bp.route('/reset-password', methods=['POST'])
-def reset_password():
+def send_mail_password():
     body = request.get_json(silent=True)
     email = (body["email"] or "").strip().lower()
-    reset_email_password = f"{url_front}resetPassword/hrdiqweh"
+
+    serializer = URLSafeTimedSerializer(os.getenv("MAIL_PASSWORD"))
+    token = serializer.dumps(email, salt="password-reset")
+    nuevo_caracter = "_"
+    #reset_email_password = f"{url_front}resetPassword/hrdiqweh"
+
+    cadena_modificada = re.sub(r"\.", nuevo_caracter, token)
+    reset_email_password = f"{url_front}/resetPassword/{cadena_modificada}"
 
     msg = Message(
         'Prueba de email',
@@ -37,6 +45,38 @@ def reset_password():
     return jsonify({
         'msg': 'Correo enviado correctamente',
     }), 200
+
+
+
+@auth_bp.route('/reset-password/<string:token>', methods=['POST'])
+def reset_password(token):
+    body = request.get_json(silent=True)
+    if body is None:
+        return jsonify({'msg': 'Debes enviar informacion en el body'}), 400
+    if 'password' not in body:
+        return jsonify({'msg': 'Debes proporcionar una nueva contraseña'}), 400
+
+    nuevo_caracter = "."
+    token_original = re.sub(r"_", nuevo_caracter, token)
+
+    serializer = URLSafeTimedSerializer(os.getenv("MAIL_PASSWORD"))
+    try:
+        email = serializer.loads(
+            token_original,
+            salt="password-reset",
+            max_age=3600
+        )
+    except Exception as e:
+        return jsonify({'msg': 'El token es inválido o ha expirado'}), 400
+
+    user = User.query.filter_by(email=email).first()
+    if user is None:
+        return jsonify({'msg': 'El usuario no existe'}), 404
+
+    user.password = generate_password_hash(body["password"])
+    db.session.commit()
+
+    return jsonify({'msg': 'Contraseña restablecida correctamente'}), 200
 
 
 
