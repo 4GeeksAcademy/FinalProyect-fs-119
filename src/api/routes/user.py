@@ -148,18 +148,3 @@ def update_user(user_id):
         'msg': f'El usuario {user_id} ha sido actualizado con exito', 
         'user': user.serialize()
         }), 200
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-

@@ -13,7 +13,7 @@ import Demo from "./pages/Demo";
 import Login from "./pages/Login";
 import Register from "./pages/Register";
 import { CreateRestaurantForm } from "./pages/CreateRestaurantForm";
-import { Profile } from "./pages/Profile";
+import Profile from "./pages/Profile";
 
 export const router = createBrowserRouter(
   createRoutesFromElements(
