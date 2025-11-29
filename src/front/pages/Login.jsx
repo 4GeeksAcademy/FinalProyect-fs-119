@@ -1,8 +1,9 @@
+// src/front/pages/Login.jsx
 import React, { useState } from "react";
 import { useNavigate, Link } from "react-router-dom";
 import ModalResetPassword from "../components/ModalResetPassword";
 
-export const Login = () => {
+const Login = () => {
   const navigate = useNavigate();
 
   const [email, setEmail] = useState("");
@@ -100,19 +101,12 @@ export const Login = () => {
         >
           <div
             className="card-header text-white text-center"
-            style={{
-              backgroundColor: "rgba(75, 101, 135, 0.85)",
-            }}
+            style={{ backgroundColor: "rgba(75, 101, 135, 0.85)" }}
           >
             <h1 className="h4 mb-0">LOGIN</h1>
           </div>
 
-          <div
-            className="card-body"
-            style={{
-              background: "transparent",
-            }}
-          >
+          <div className="card-body" style={{ background: "transparent" }}>
             {error && (
               <div className="alert alert-danger py-2" role="alert">
                 {error}
@@ -160,33 +154,30 @@ export const Login = () => {
               </button>
             </form>
 
-            <div className="text-center mb-2">
+            <div className="text-center mb-2 mt-3">
+              {/* Botón que abre el modal de reset */}
               <button
                 type="button"
                 className="btn btn-link p-0 text-decoration-none"
                 onClick={() => setShowModalReset(true)}
               >
-            <div className="text-center mb-2 mt-3">
-              <Link to="/reset-password" className="text-decoration-none">
                 ¿Olvidaste tu contraseña?
               </button>
             </div>
 
-
             <div className="text-center mt-3">
-            <div className="text-center mt-2">
               <span className="text-muted me-1">¿No tienes cuenta?</span>
               <Link to="/register">Regístrate</Link>
             </div>
           </div>
         </div>
+
+        <ModalResetPassword
+          show={showModalReset}
+          onClose={() => setShowModalReset(false)}
+        />
       </div>
-       <ModalResetPassword
-        show={showModalReset}
-        onClose={() => setShowModalReset(false)}
-      />
     </div>
-    
   );
 };
 

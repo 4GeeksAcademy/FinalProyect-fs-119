@@ -12,7 +12,6 @@ import Single from "./pages/Single";
 import Demo from "./pages/Demo";
 import Login from "./pages/Login";
 import Register from "./pages/Register";
-import { CreateRestaurantForm } from "./pages/CreateRestaurantForm";
 import Profile from "./pages/Profile";
 import ResetPassword from "./pages/ResetPassword";
 
@@ -26,7 +25,6 @@ export const router = createBrowserRouter(
         <Route path="demo" element={<Demo />} />
         <Route path="login" element={<Login />} />
         <Route path="register" element={<Register />} />
-        <Route path="user/restaurants" element={<CreateRestaurantForm />} />
         <Route path="profile" element={<Profile />} />
         <Route path="resetPassword/:token*" element={<ResetPassword />} />
       </Route>
