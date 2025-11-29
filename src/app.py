@@ -93,23 +93,6 @@ def serve_any_other_file(path):
     response = send_from_directory(static_file_dir, path)
     response.cache_control.max_age = 0
     return response
-"""""
-@app.route('/api/send-mail', methods=['GET'])
-def send_mail():
-    msg = Message(
-        subject = 'Correo de recuperacion de contraseña',
-        sender = 'setadish@gmail.com', #MISMO  CORREO
-        recipients = ['setadish@gmail.com'] #CORREO DEL USUARIO
-    )
-
-    msg.html = '<h1>Prueba de correo</h1>' #Dia 44 - Recuperación de Contraseña pt1-- min:24:00
-
-    mail.send(msg)      
-
-    return jsonify({'msg': 'Correo enviado satisfactoriamente'})
-
-
-"""
 
 
 if __name__ == '__main__':

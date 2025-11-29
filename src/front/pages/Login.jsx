@@ -31,7 +31,7 @@ export const Login = () => {
     try {
       if (!API_BASE) throw new Error("Falta VITE_BACKEND_URL en .env");
 
-      const loginURL = new URL("api/user/login", API_BASE).toString();
+      const loginURL = new URL("/api/user/login", API_BASE).toString();
 
       const res = await fetch(loginURL, {
         method: "POST",
@@ -77,6 +77,7 @@ export const Login = () => {
   };
 
   return (
+
     <div
       className="container-fluid d-flex justify-content-center align-items-center"
       style={{
@@ -85,8 +86,7 @@ export const Login = () => {
         backgroundSize: "cover",
         backgroundPosition: "center",
         backgroundRepeat: "no-repeat",
-      }}
-    >
+      }}>
       <div className="col-12 col-md-6 col-lg-4">
         <div
           className="card shadow-sm border-0"
@@ -166,27 +166,26 @@ export const Login = () => {
                 className="btn btn-link p-0 text-decoration-none"
                 onClick={() => setShowModalReset(true)}
               >
-            <div className="text-center mb-2 mt-3">
-              <Link to="/reset-password" className="text-decoration-none">
-                ¿Olvidaste tu contraseña?
+                <span className="text-center mb-2 mt-3">¿Olvidaste tu contraseña?</span>
               </button>
-            </div>
 
-
-            <div className="text-center mt-3">
-            <div className="text-center mt-2">
-              <span className="text-muted me-1">¿No tienes cuenta?</span>
-              <Link to="/register">Regístrate</Link>
+              <div className="text-center mt-3">
+                <div className="text-center mt-2">
+                  <span className="text-muted me-1">¿No tienes cuenta?</span>
+                  <Link to="/register">Regístrate</Link>
+                </div>
+              </div>
             </div>
           </div>
+          <ModalResetPassword
+            show={showModalReset}
+            onClose={() => setShowModalReset(false)}
+          />
         </div>
       </div>
-       <ModalResetPassword
-        show={showModalReset}
-        onClose={() => setShowModalReset(false)}
-      />
     </div>
-    
+
+
   );
 };
 

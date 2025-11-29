@@ -28,7 +28,7 @@ export const Register = () => {
     setLoading(true);
 
     try {
-      const registerURL = new URL("api/user/register", API_BASE).toString();
+      const registerURL = new URL("/api/user/register", API_BASE).toString();
 
       const res = await fetch(registerURL, {
         method: "POST",
