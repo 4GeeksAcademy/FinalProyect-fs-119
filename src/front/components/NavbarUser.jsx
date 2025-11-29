@@ -4,11 +4,33 @@ export const NavbarUser = () => {
   const [isOpen, setIsOpen] = useState(false);
 
   return (
-    <nav className="navbar navbar-expand-lg navbar-dark sticky-top shadow-sm" style={{ backgroundColor: "#4B6587" }}>
-      <div className="container-fluid">
-        <a className="navbar-brand fs-2 fw-bold" href="/home" style={{ fontFamily: "Brush Script MT, cursive", color: "#F9C784" }}>
-          DISHCOST
+    <nav
+      className="navbar navbar-expand-lg navbar-dark sticky-top shadow-sm"
+      style={{ backgroundColor: "#4B6587" }}
+    >
+      <div className="container-fluid d-flex align-items-center">
+        <a
+          href="/home"
+          className="navbar-brand d-flex align-items-center text-decoration-none me-3"
+        >
+          <img
+            src="/logo.jpg"
+            alt="Logo"
+            style={{ height: "36px", display: "block", marginBottom: "-4px" }}
+          />
+          <span
+            className="fs-2 fw-bold"
+            style={{
+              fontFamily: "Klavika, sans-serif",
+              color: "#2ce8ff",
+              lineHeight: 1,
+              letterSpacing: "-1px",
+            }}
+          >
+            setameal
+          </span>
         </a>
+
         <button
           className="navbar-toggler"
           type="button"
@@ -19,15 +41,64 @@ export const NavbarUser = () => {
         >
           <span className="navbar-toggler-icon"></span>
         </button>
-        <div className={`collapse navbar-collapse ${isOpen ? "show" : ""}`} id="navbarUserNav">
+
+        <div
+          className={`collapse navbar-collapse ${isOpen ? "show" : ""}`}
+          id="navbarUserNav"
+        >
           <ul className="navbar-nav ms-auto align-items-lg-center">
-            <li className="nav-item mx-2"><a href="/home" className="nav-link text-white fw-semibold">Principal</a></li>
-            <li className="nav-item mx-2"><a href="/ingredients" className="nav-link text-white fw-semibold">Ingredientes</a></li>
-            <li className="nav-item mx-2"><a href="/dishes" className="nav-link text-white fw-semibold">Platos</a></li>
-            <li className="nav-item mx-2"><a href="/profile" className="nav-link text-white fw-semibold">Perfil</a></li>
+            <li className="nav-item mx-2">
+              <a href="/ingredients" className="nav-link text-white fw-semibold">
+                Ingredientes
+              </a>
+            </li>
+
+            <li className="nav-item mx-2">
+              <a href="/dishes" className="nav-link text-white fw-semibold">
+                Platos
+              </a>
+            </li>
+
+            <li className="nav-item dropdown mx-2">
+              <a
+                className="nav-link dropdown-toggle text-white fw-semibold"
+                href="#"
+                id="perfilDropdown"
+                role="button"
+                data-bs-toggle="dropdown"
+                aria-expanded="false"
+              >
+                Perfil
+              </a>
+              <ul
+                className="dropdown-menu dropdown-menu-end"
+                aria-labelledby="perfilDropdown"
+              >
+                <li>
+                  <a className="dropdown-item" href="/profile">
+                    Ver perfil
+                  </a>
+                </li>
+                <li>
+                  <a className="dropdown-item" href="/settings">
+                    Ajustes
+                  </a>
+                </li>
+                <li>
+                  <hr className="dropdown-divider" />
+                </li>
+                <li>
+                  <a className="dropdown-item" href="/logout">
+                    Cerrar sesión
+                  </a>
+                </li>
+              </ul>
+            </li>
           </ul>
         </div>
       </div>
     </nav>
   );
 };
+
+export default NavbarUser;

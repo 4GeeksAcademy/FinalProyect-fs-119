@@ -97,7 +97,6 @@ export const CreateIngredientModal = ({ show, onClose, onSave }) => {
   const [name, setName] = useState("");
   const [price, setPrice] = useState("");
   const [unit, setUnit] = useState("");
-  const [stock, setStock] = useState(0);
 
   const UNITS = [
     { value: "g", label: "Gramos (g)" },
@@ -119,10 +118,11 @@ export const CreateIngredientModal = ({ show, onClose, onSave }) => {
       name: name.trim(),
       unit,
       price_per_unit: Number(price),
-      stock,
     });
 
-    setName(""); setPrice(""); setUnit(""); setStock(0);
+    setName("");
+    setPrice("");
+    setUnit("");
   };
 
   return (
@@ -130,12 +130,10 @@ export const CreateIngredientModal = ({ show, onClose, onSave }) => {
       <div style={modalStyle}>
         <h3 className="mb-3">Crear Ingrediente</h3>
 
-        
         {name && (
           <div style={previewStyle}>
             <span>{name}</span>
             <span>{price ? `${price} / ${unit}` : "-"}</span>
-            {stock > 0 && <span>Stock: {stock}</span>}
           </div>
         )}
 
@@ -166,13 +164,6 @@ export const CreateIngredientModal = ({ show, onClose, onSave }) => {
             ))}
           </select>
         </div>
-        <input
-          className="form-control mb-3"
-          placeholder=""
-          type="number"
-          value={stock}
-          onChange={(e) => setStock(Number(e.target.value))}
-        />
 
         <div className="d-flex justify-content-end gap-2">
           <button className="btn btn-secondary" onClick={onClose}>
@@ -186,6 +177,7 @@ export const CreateIngredientModal = ({ show, onClose, onSave }) => {
     </div>
   );
 };
+
 
 
 
