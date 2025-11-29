@@ -8,7 +8,7 @@ from api.utils import APIException, generate_sitemap
 from api.models import db
 from api.admin import setup_admin
 from api.commands import setup_commands
-from api.extensions import bcrypt
+from api.extensions import bcrypt, mail
 import api.routes.user as api_user
 import api.routes.rest as api_rest
 import api.routes.cat as api_cat
@@ -16,7 +16,7 @@ import api.routes.ingr as api_ingr
 import api.routes.dish as api_dish
 import api.routes.dising as api_dising
 
-from flask_mail import Mail
+from flask_mail import Message
 
 ENV = "development" if os.getenv("FLASK_DEBUG") == "1" else "production"
 static_file_dir = os.path.join(os.path.dirname(
@@ -27,8 +27,16 @@ app.url_map.strict_slashes = False
 
 app.config.update(dict(
     DEBUG=False,
-    
+    MAIL_SERVER='smtp.gmail.com', #Dia 44 - Recuperación de Contraseña pt1-- min:13:13
+    MAIL_PORT=587,
+    MAIL_USE_TLS=True,
+    MAIL_USE_SSL=False,
+    MAIL_USERNAME='setadish@gmail.com', #AÑADIR CORREO EXISTENTE
+    MAIL_PASSWORD=os.getenv('MAIL_PASSWORD')
+
 ))
+
+#mail = Mail(app)
 
 # JWT config
 app.config["JWT_SECRET_KEY"] = os.getenv("JWT_SECRET_KEY", "supersecretkey")
@@ -54,6 +62,7 @@ db.init_app(app)
 bcrypt.init_app(app)            # <-- NUEVO
 CORS(app)
 jwt = JWTManager(app)
+mail.init_app(app)
 
 setup_admin(app)
 setup_commands(app)
@@ -84,6 +93,23 @@ def serve_any_other_file(path):
     response = send_from_directory(static_file_dir, path)
     response.cache_control.max_age = 0
     return response
+"""""
+@app.route('/api/send-mail', methods=['GET'])
+def send_mail():
+    msg = Message(
+        subject = 'Correo de recuperacion de contraseña',
+        sender = 'setadish@gmail.com', #MISMO  CORREO
+        recipients = ['setadish@gmail.com'] #CORREO DEL USUARIO
+    )
+
+    msg.html = '<h1>Prueba de correo</h1>' #Dia 44 - Recuperación de Contraseña pt1-- min:24:00
+
+    mail.send(msg)      
+
+    return jsonify({'msg': 'Correo enviado satisfactoriamente'})
+
+
+"""
 
 
 if __name__ == '__main__':

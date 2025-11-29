@@ -1,5 +1,5 @@
 from flask import Blueprint, request, jsonify
-from ..models import db, Restaurant, User, Categories
+from ..models import db, Restaurant, Categories
 from flask_cors import CORS
 from api.extensions import  has_value
 

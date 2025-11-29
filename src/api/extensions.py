@@ -1,8 +1,10 @@
 from flask_bcrypt import Bcrypt
+from flask_mail import Mail
 from decimal import Decimal, InvalidOperation
 
 
 bcrypt = Bcrypt()
+mail = Mail()
 
 def has_value(value):
     return not (value is None or (isinstance(value, str) and value.strip() == ''))
