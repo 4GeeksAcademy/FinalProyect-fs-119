@@ -1,5 +1,6 @@
 import React, { useState } from "react";
 import { useNavigate, Link } from "react-router-dom";
+import ModalResetPassword from "../components/ModalResetPassword";
 
 export const Login = () => {
   const navigate = useNavigate();
@@ -8,6 +9,7 @@ export const Login = () => {
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
+  const [showModalReset, setShowModalReset] = useState(false);
 
   const API_BASE = import.meta.env.VITE_BACKEND_URL;
 
@@ -152,10 +154,16 @@ export const Login = () => {
             </form>
 
             <div className="text-center mb-2">
-              <Link to="/reset-password" className="text-decoration-none">
+              <button
+                type="button"
+                className="btn btn-link p-0 text-decoration-none"
+                onClick={() => setShowModalReset(true)}
+              >
                 ¿Olvidaste tu contraseña?
-              </Link>
+              </button>
             </div>
+
+
             <div className="text-center mt-3">
               <span className="text-muted me-1">¿No tienes cuenta?</span>
               <Link to="/register">Regístrate</Link>
@@ -163,7 +171,12 @@ export const Login = () => {
           </div>
         </div>
       </div>
+       <ModalResetPassword
+        show={showModalReset}
+        onClose={() => setShowModalReset(false)}
+      />
     </div>
+    
   );
 };
 

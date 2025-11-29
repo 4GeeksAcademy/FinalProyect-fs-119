@@ -1,0 +1,55 @@
+/* Contenedor principal del enlace */
+.animated-navbrand-group {
+  display: flex;
+  align-items: center;
+  gap: 0.25rem; /* similar a gap-x-1 */
+  text-decoration: none;
+  color: inherit;
+}
+
+/* Icono del plato */
+.plate-icon {
+  width: 1.75rem; /* h-7 w-7 */
+  height: 1.75rem;
+  color: hsl(197, 71%, 43%); /* text-primary */
+  transition: transform 300ms;
+}
+
+.animated-navbrand-group:hover .plate-icon {
+  transform: rotate(25deg);
+}
+
+/* Contenedor del texto completo "setameal" */
+.brand-text-container {
+  display: flex;
+  align-items: baseline;
+  font-size: 1.5rem; /* text-2xl */
+  line-height: 2rem;
+  font-weight: 900; /* font-black */
+  letter-spacing: 0.025em; /* tracking-wide */
+  color: hsl(240, 64%, 27%); /* text-foreground */
+}
+
+/* Letras que se animan ("et" y "mea") */
+.animated-chars {
+  display: flex;
+  max-width: 0;
+  opacity: 0;
+  transition-property: all;
+  transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
+  transition-duration: 300ms;
+  transition-delay: var(--delay);
+}
+
+.animated-navbrand-group:hover .animated-chars {
+  max-width: 100%; /* El equivalente a max-w-full */
+  opacity: 1;
+}
+
+/* La letra "a" con color de acento */
+.accent-char {
+  font-weight: 700; /* font-bold */
+  color: hsl(180, 65%, 90%); /* text-accent */
+  padding-left: 0.125rem; /* px-0.5 */
+  padding-right: 0.125rem;
+}

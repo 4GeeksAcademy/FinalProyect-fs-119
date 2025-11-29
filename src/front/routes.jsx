@@ -29,7 +29,7 @@ export const router = createBrowserRouter(
         <Route path="register" element={<Register />} />
         <Route path="user/restaurants" element={<CreateRestaurantForm />} />
         <Route path="profile" element={<Profile />} />
-        <Route path="resetPassword/:token" element={<ResetPassword />} />
+        <Route path="resetPassword/:token*" element={<ResetPassword />} />
       </Route>
 
       <Route path="single/:theId" element={<Single />} />

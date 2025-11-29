@@ -11,28 +11,25 @@ from itsdangerous import URLSafeTimedSerializer
 import re
 auth_bp = Blueprint('/api/user', __name__)
 
-#---Incorporacion nueva para campos vacios en PUT ---VALIDAR HORACIO------
-#def has_value(value):
+# ---Incorporacion nueva para campos vacios en PUT ---VALIDAR HORACIO------
+# def has_value(value):
 #    return not (value is None or (isinstance(value, str) and value.strip() == ''))
-#--------------------------------------------------------------------------------
+# --------------------------------------------------------------------------------
 
 CORS(auth_bp)
 
-url_front = os.getenv("FRONTEND_URL").rstrip("/")   
+url_front = os.getenv("FRONTEND_URL", "http://localhost:5173").rstrip("/")
 
 
-@auth_bp.route('/reset-password', methods=['POST'])
+@auth_bp.route('/resetPassword', methods=['POST'])
 def send_mail_password():
     body = request.get_json(silent=True)
     email = (body["email"] or "").strip().lower()
 
     serializer = URLSafeTimedSerializer(os.getenv("MAIL_PASSWORD"))
     token = serializer.dumps(email, salt="password-reset")
-    nuevo_caracter = "_"
-    #reset_email_password = f"{url_front}resetPassword/hrdiqweh"
 
-    cadena_modificada = re.sub(r"\.", nuevo_caracter, token)
-    reset_email_password = f"{url_front}/resetPassword/{cadena_modificada}"
+    reset_email_password = f"{url_front}/resetPassword/{token}/token"
 
     msg = Message(
         'Prueba de email',
@@ -41,14 +38,14 @@ def send_mail_password():
         sender='setadish@gmail.com',
     )
     mail.send(msg)
+    print(token)
 
     return jsonify({
         'msg': 'Correo enviado correctamente',
     }), 200
 
 
-
-@auth_bp.route('/reset-password/<string:token>', methods=['POST'])
+@auth_bp.route('/resetPassword/<string:token>', methods=['POST'])
 def reset_password(token):
     body = request.get_json(silent=True)
     if body is None:
@@ -56,13 +53,10 @@ def reset_password(token):
     if 'password' not in body:
         return jsonify({'msg': 'Debes proporcionar una nueva contraseña'}), 400
 
-    nuevo_caracter = "."
-    token_original = re.sub(r"_", nuevo_caracter, token)
-
     serializer = URLSafeTimedSerializer(os.getenv("MAIL_PASSWORD"))
     try:
         email = serializer.loads(
-            token_original,
+            token,
             salt="password-reset",
             max_age=3600
         )
@@ -77,7 +71,6 @@ def reset_password(token):
     db.session.commit()
 
     return jsonify({'msg': 'Contraseña restablecida correctamente'}), 200
-
 
 
 @auth_bp.route('/login', methods=['POST'])
@@ -108,7 +101,7 @@ def register_user():
     body = request.get_json(silent=True)
     if body is None:
         return jsonify({'msg': 'Debes enviar informacion en el body'}), 400
-    #if 'email' not in body:
+    # if 'email' not in body:
     #    return jsonify({'msg': 'El campo email es obligatorio'}), 400
     if 'name' not in body:
         return jsonify({'msg': 'Debes proporcionar un nombre'}), 400
@@ -122,22 +115,22 @@ def register_user():
     if User.query.filter_by(email=email).first():
         return jsonify({'msg': f'El email {email} ya está registrado'}), 400
 
-
     user = User(
-        email=body["email"], 
-        password=generate_password_hash(body["password"]), 
-        is_active=True, 
+        email=body["email"],
+        password=generate_password_hash(body["password"]),
+        is_active=True,
         name=body["name"],
-       
-       
-        )
+
+
+    )
 
     db.session.add(user)
     db.session.commit()
 
     return jsonify({'msg': 'Usuario registrado!', 'register': user.serialize()}), 200
 
-#///////////INCORPORACION METODO 'GET' PARA /api/user/perfil //////////////////
+# ///////////INCORPORACION METODO 'GET' PARA /api/user/perfil //////////////////
+
 
 @auth_bp.route('/profile/<int:user_id>', methods=['GET'])
 def profile_user(user_id):
@@ -145,10 +138,8 @@ def profile_user(user_id):
     user = User.query.get(user_id)
     if user is None:
         return jsonify({'msg': f'El usuario con ID {user_id} no existe'}), 404
-    
+
     return jsonify({'user': user.serialize()}), 200
-
-
 
 
 @auth_bp.route('/delete/<int:user_id>', methods=['DELETE'])
@@ -156,40 +147,39 @@ def delete_user(user_id):
 
     user = User.query.get(user_id)
     if user is None:
-        return jsonify ({'msg': f'El usuario con ID {user_id} no existe'}), 404
-    
+        return jsonify({'msg': f'El usuario con ID {user_id} no existe'}), 404
+
     db.session.delete(user)
     db.session.commit()
     return jsonify({'msg': 'Usuario eliminado con exito'}), 200
-
 
 
 @auth_bp.route('/update/<int:user_id>', methods=['PUT'])
 def update_user(user_id):
 
     body = request.get_json(silent=True)
-    if body is None: 
+    if body is None:
         return jsonify({'msg': 'Debes enviar informacion en el body'}), 400
-        
 
     user = User.query.get(user_id)
     if user is None:
-        return jsonify ({'msg': f'El usuario con ID {user_id} no existe'}), 404
-    
+        return jsonify({'msg': f'El usuario con ID {user_id} no existe'}), 404
+
     updated = False
 
     if 'email' in body and has_value(body.get('email')):
         new_email = body['email'].strip()
         if new_email != user.email:
-            exist = User.query.filter(User.email == new_email, User.id != user_id). first()
+            exist = User.query.filter(
+                User.email == new_email, User.id != user_id). first()
             if exist:
                 return jsonify({'msg': 'Este email ya esta en uso'}), 400
             user.email = new_email
-            updated = True  
+            updated = True
     if 'name' in body and has_value(body.get('name')):
         user.name = body['name'].strip()
         updated = True
-    
+
     if 'password' in body and has_value(body.get('password')):
         user.password = generate_password_hash(body['password'])
         updated = True
@@ -202,28 +192,13 @@ def update_user(user_id):
         user.direccion = body['direccion'].strip()
         updated = True
 
-    if not updated: 
+    if not updated:
         return jsonify({'msg': 'No se actualizaron todos los campos'}), 400
 
 # -----------SE DEBERIA PEDIR CONFIRMACION PARA CAMBIO DE CONTRASEÑA? COMO DESARROLLARLO??
-    #print(user.password)
+    # print(user.password)
     db.session.commit()
     return jsonify({
-        'msg': f'El usuario {user_id} ha sido actualizado con exito', 
+        'msg': f'El usuario {user_id} ha sido actualizado con exito',
         'user': user.serialize()
-        }), 200
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+    }), 200
