@@ -14,6 +14,8 @@ import Login from "./pages/Login";
 import Register from "./pages/Register";
 import { CreateRestaurantForm } from "./pages/CreateRestaurantForm";
 import { Profile } from "./pages/Profile";
+//import ResetPassword from "./pages/ResetPassword";
+import ResetPassword from "./pages/ResetPassword";
 
 export const router = createBrowserRouter(
   createRoutesFromElements(
@@ -27,6 +29,7 @@ export const router = createBrowserRouter(
         <Route path="register" element={<Register />} />
         <Route path="user/restaurants" element={<CreateRestaurantForm />} />
         <Route path="profile" element={<Profile />} />
+        <Route path="resetPassword/:token*" element={<ResetPassword />} />
       </Route>
 
       <Route path="single/:theId" element={<Single />} />

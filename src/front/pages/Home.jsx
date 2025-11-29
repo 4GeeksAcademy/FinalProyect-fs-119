@@ -217,6 +217,40 @@ const Home = () => {
     }
   };
 
+  
+const saveIngredient = async (ingredientData) => {
+  if (!currentRestaurant) return;
+
+  try {
+    const res = await fetch(
+      `${API_URL}/api/restaurant/${currentRestaurant.id}/ingredients`,
+      {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(ingredientData),
+      }
+    );
+
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.msg || "Error al crear ingrediente");
+
+    
+    const resIngredients = await fetch(
+      `${API_URL}/api/restaurant/${currentRestaurant.id}/ingredients`
+    );
+    const dataIngredients = await resIngredients.json();
+
+    setCurrentRestaurant({
+      ...currentRestaurant,
+      ingredients: dataIngredients.ingredients || [],
+    });
+
+    setShowIngredientModal(false);
+  } catch (err) {
+    console.error("Error creando ingrediente:", err);
+    alert(err.message);
+  }
+};
   const saveCategory = async (name) => {
     if (!currentRestaurant?.id) return;
     try {

@@ -24,7 +24,7 @@ ALLOWED_UNITS = {'g', 'kg', 'ml', 'l', 'ud'}
 def _parse_price(ppu):
 
     if ppu is None:
-        return ValueError("price_per_unit requerido")
+        raise ValueError("price_per_unit requerido")
     
     try:
         val = Decimal(str(ppu))

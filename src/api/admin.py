@@ -20,6 +20,15 @@ def ingredient_label(i: Ingredients):
 def dish_label(d: Dishes):
     return f"{d.name} (id={d.id})"
 
+def dising_label(di: DishIngredient):
+    return f"{di.ingredient_name}"
+
+"""
+class uuid-tokensModelView(ModelView):
+    column_list = ['id', 'uuid', 'email', 'dateTime']
+    form_columns = ['id', 'uuid', 'email', 'dateTime']
+"""
+
 
 class UsersModelView(ModelView):
     column_list = ['id', 'name', 'email', 'password', 'telefono', 'direccion', 'is_active']
@@ -146,3 +155,6 @@ def setup_admin(app):
     admin.add_view(IngredientsModelView(Ingredients, db.session))
     admin.add_view(DishesModelView(Dishes, db.session))
     admin.add_view(DishIngredientModelView(DishIngredient, db.session))
+    """
+    admin.add_view(uuid-tokensModelView(uuid-tokens, db.session))
+    """
