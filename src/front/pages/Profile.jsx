@@ -1,278 +1,224 @@
+// src/front/pages/Profile.jsx
 import React, { useEffect, useState } from "react";
+import Sidebar from "./Sidebar.jsx";
+import useGlobalReducer from "../hooks/useGlobalReducer";
 
-export function Profile() {
-  function getAvatarFromText(text) {
-    if (!text || !text.trim()) return "https://avatar.iran.liara.run/public/boy";
-    return `https://avatar.iran.liara.run/username?username=${encodeURIComponent(
-      text.trim()
-    )}`;
-  }
+const API = (import.meta.env.VITE_BACKEND_URL || "").replace(/\/$/, "");
+
+function getAvatarFromText(text) {
+  if (!text || !text.trim()) return "https://avatar.iran.liara.run/public/boy";
+  return `https://avatar.iran.liara.run/username?username=${encodeURIComponent(text.trim())}`;
+}
+
+const Profile = () => {
+  const { store, dispatch } = useGlobalReducer();
+  const token = typeof window !== "undefined" ? localStorage.getItem("token") : null;
+  const userId = typeof window !== "undefined" ? localStorage.getItem("user_id") : null;
 
   const [profileName, setProfileName] = useState("");
   const [email, setEmail] = useState("");
   const [telefono, setTelefono] = useState("");
   const [direccion, setDireccion] = useState("");
-  const [profileMsg, setProfileMsg] = useState("");
-  const [profileError, setProfileError] = useState("");
   const [isEditing, setIsEditing] = useState(false);
+  const [loading, setLoading] = useState(false);
+  const [msg, setMsg] = useState("");
+  const [error, setError] = useState("");
 
-  const [restaurants, setRestaurants] = useState([]);
-  const [loadingRestaurants, setLoadingRestaurants] = useState(false);
-  const [errorRestaurants, setErrorRestaurants] = useState("");
-
-  const API_BASE = import.meta.env.VITE_BACKEND_URL;
-  const token = typeof window !== "undefined" ? localStorage.getItem("token") : null;
-  const userId = typeof window !== "undefined" ? localStorage.getItem("user_id") : null;
-
-  const PROFILE_URL = userId ? new URL(`/api/user/profile/${userId}`, API_BASE).toString() : null;
-  const UPDATE_URL = userId ? new URL(`/api/user/update/${userId}`, API_BASE).toString() : null;
-  const RESTAURANTS_URL = userId ? new URL(`/api/user/${userId}/restaurant`, API_BASE).toString() : null;
+  const restaurantsFromStore = store?.restaurants || [];
+  const [restaurants, setRestaurants] = useState(restaurantsFromStore);
 
   useEffect(() => {
+    setRestaurants(restaurantsFromStore);
+  }, [restaurantsFromStore]);
+
+  useEffect(() => {
+    if (!userId || !token) return;
     const controller = new AbortController();
-    const fetchProfile = async () => {
-      if (!PROFILE_URL || !token) return;
+    const loadProfile = async () => {
+      setError("");
       try {
-        setProfileError("");
-        const res = await fetch(PROFILE_URL, {
+        setLoading(true);
+        const res = await fetch(`${API}/api/user/profile/${userId}`, {
           method: "GET",
           headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
           signal: controller.signal,
         });
         const data = await res.json();
-        if (!res.ok) throw new Error(data.error || data.msg || "No se pudo cargar el perfil");
+        if (!res.ok) throw new Error(data.error || data.msg || "Error");
         const u = data.user || data.usuario || data;
-        if (u.name) setProfileName(u.name);
-        if (u.email) setEmail(u.email);
-        if (u.telefono) setTelefono(u.telefono);
-        if (u.direccion) setDireccion(u.direccion);
+        setProfileName(u?.name || "");
+        setEmail(u?.email || "");
+        setTelefono(u?.telefono || "");
+        setDireccion(u?.direccion || "");
       } catch (err) {
-        if (err.name !== "AbortError") setProfileError(err.message);
+        if (err.name !== "AbortError") setError(err.message || String(err));
+      } finally {
+        setLoading(false);
       }
     };
-
-    if (token && userId) fetchProfile();
+    loadProfile();
     return () => controller.abort();
-  }, [token, userId, PROFILE_URL]);
-
-  const handleProfileSubmit = async (e) => {
-    e.preventDefault();
-    if (!UPDATE_URL || !token) return;
-
-    setProfileError("");
-    setProfileMsg("");
-
-    const payload = {
-      email: email.trim(),
-      name: profileName.trim(),
-      telefono: telefono.trim() || null,
-      direccion: direccion.trim() || null,
-    };
-
-    try {
-      const res = await fetch(UPDATE_URL, {
-        method: "PUT",
-        headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
-        body: JSON.stringify(payload),
-      });
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.error || data.msg || "No se pudo actualizar el perfil");
-      setProfileMsg(data.msg || "Perfil actualizado correctamente.");
-      setIsEditing(false);
-    } catch (err) {
-      setProfileError(err.message);
-    }
-  };
+  }, [userId, token]);
 
   useEffect(() => {
+    if (!userId || restaurantsFromStore.length) return;
     const controller = new AbortController();
-    const fetchRestaurants = async () => {
-      if (!RESTAURANTS_URL) return;
+    (async () => {
       try {
-        setErrorRestaurants("");
-        setLoadingRestaurants(true);
-        const res = await fetch(RESTAURANTS_URL, {
-          method: "GET",
+        setLoading(true);
+        const res = await fetch(`${API}/api/user/${userId}/restaurant`, {
           headers: { "Content-Type": "application/json", ...(token ? { Authorization: `Bearer ${token}` } : {}) },
           signal: controller.signal,
         });
         const data = await res.json();
-        if (!res.ok) throw new Error(data.error || data.msg || "No se pudo cargar la lista");
+        if (!res.ok) throw new Error(data.msg || "Error");
         setRestaurants(Array.isArray(data.restaurants) ? data.restaurants : []);
       } catch (err) {
-        if (err.name !== "AbortError") setErrorRestaurants(err.message);
+        if (err.name !== "AbortError") setError(err.message || String(err));
       } finally {
-        setLoadingRestaurants(false);
+        setLoading(false);
       }
-    };
-
-    if (token && userId) fetchRestaurants();
+    })();
     return () => controller.abort();
-  }, [token, userId, RESTAURANTS_URL]);
+  }, [userId, token, restaurantsFromStore]);
+
+  const handleProfileSubmit = async (e) => {
+    e.preventDefault();
+    if (!userId || !token) return;
+    setMsg("");
+    setError("");
+    try {
+      setLoading(true);
+      const res = await fetch(`${API}/api/user/update/${userId}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+        body: JSON.stringify({
+          name: profileName.trim(),
+          email: email.trim(),
+          telefono: telefono.trim() || null,
+          direccion: direccion.trim() || null,
+        }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || data.msg || "Error");
+      setMsg(data.msg || "Perfil actualizado");
+      setIsEditing(false);
+    } catch (err) {
+      setError(err.message || String(err));
+    } finally {
+      setLoading(false);
+    }
+  };
 
   return (
-    <div className="container my-4">
-      <div className="card border-0 shadow-sm mb-4">
-        <div
-          className="card-header text-white text-uppercase fs-3 fw-semibold text-center"
-          style={{ backgroundColor: "rgb(75, 101, 135)" }}
-        >
-          PERFIL
-        </div>
+    <div className="d-flex" style={{ minHeight: "100vh" }}>
+      <Sidebar onOpenRestaurantModal={() => dispatch({ type: "ui_set", payload: { showRestaurantModal: true } })} />
 
-        <div className="card-body">
-          {profileError && <div className="alert alert-danger py-2 mb-3">{profileError}</div>}
-          {profileMsg && <div className="alert alert-success py-2 mb-3">{profileMsg}</div>}
+      <main className="flex-grow-1 p-4" style={{ background: "#F7F9FB" }}>
+        <div className="container">
+          <h2 style={{ color: "#21334a", marginBottom: 18 }}>Perfil</h2>
+          {error && <div className="alert alert-danger">{error}</div>}
+          {msg && <div className="alert alert-success">{msg}</div>}
 
-          <div className="d-flex justify-content-center mb-4">
-            <div
-              className="rounded-circle border border-2 border-secondary-subtle bg-light d-flex align-items-center justify-content-center"
-              style={{ width: "160px", height: "160px", overflow: "hidden" }}
-            >
-              <img
-                src={getAvatarFromText(profileName)}
-                alt="Avatar del usuario"
-                className="img-fluid rounded-circle"
-                style={{ objectFit: "cover", width: "100%", height: "100%" }}
-              />
-            </div>
-          </div>
-
-          {isEditing ? (
-            <form onSubmit={handleProfileSubmit}>
-              <div className="row g-3">
-                <div className="col-md-6">
-                  <label className="form-label">Nombre</label>
-                  <input
-                    type="text"
-                    className="form-control"
-                    placeholder="Ej: Dano Olivera"
-                    value={profileName}
-                    onChange={(e) => setProfileName(e.target.value)}
-                  />
+          <div className="row">
+            <div className="col-lg-6 mb-4">
+              <div className="card shadow-sm border-0">
+                <div className="card-header text-white text-uppercase fs-5 fw-semibold text-center" style={{ backgroundColor: "rgb(75, 101, 135)" }}>
+                  Información de usuario
                 </div>
 
-                <div className="col-md-6">
-                  <label className="form-label">Correo</label>
-                  <input
-                    type="email"
-                    className="form-control"
-                    placeholder="@email.com"
-                    value={email}
-                    onChange={(e) => setEmail(e.target.value)}
-                  />
-                </div>
-
-                <div className="col-md-6">
-                  <label className="form-label">Teléfono</label>
-                  <input
-                    type="tel"
-                    className="form-control"
-                    placeholder="666 123 456"
-                    value={telefono}
-                    onChange={(e) => setTelefono(e.target.value)}
-                  />
-                </div>
-
-                <div className="col-md-12">
-                  <label className="form-label">Dirección</label>
-                  <input
-                    type="text"
-                    className="form-control"
-                    placeholder="Calle Ejemplo 123"
-                    value={direccion}
-                    onChange={(e) => setDireccion(e.target.value)}
-                  />
-                </div>
-              </div>
-
-              <div className="mt-4 text-end">
-                <button type="button" className="btn btn-outline-secondary me-2" onClick={() => setIsEditing(false)}>
-                  Cancelar
-                </button>
-                <button type="submit" className="btn text-white px-4" style={{ backgroundColor: "rgb(59, 74, 99)" }} disabled={!token}>
-                  Guardar cambios
-                </button>
-              </div>
-            </form>
-          ) : (
-            <>
-              <div className="row g-3">
-                <div className="col-md-6">
-                  <label className="form-label">Nombre</label>
-                  <p className="form-control-plaintext">{profileName || "-"}</p>
-                </div>
-
-                <div className="col-md-6">
-                  <label className="form-label">Correo</label>
-                  <p className="form-control-plaintext">{email || "-"}</p>
-                </div>
-
-                <div className="col-md-6">
-                  <label className="form-label">Teléfono</label>
-                  <p className="form-control-plaintext">{telefono || "-"}</p>
-                </div>
-
-                <div className="col-md-12">
-                  <label className="form-label">Dirección</label>
-                  <p className="form-control-plaintext">{direccion || "-"}</p>
-                </div>
-              </div>
-
-              <div className="mt-4 text-end">
-                <button
-                  type="button"
-                  className="btn text-white px-4"
-                  style={{ backgroundColor: "rgb(59, 74, 99)" }}
-                  onClick={() => setIsEditing(true)}
-                  disabled={!token}
-                >
-                  Editar
-                </button>
-              </div>
-            </>
-          )}
-        </div>
-      </div>
-
-      <div className="card border-0 shadow-sm">
-        <div
-          className="card-header text-white text-uppercase fs-3 fw-semibold text-center"
-          style={{ backgroundColor: "rgb(75, 101, 135)" }}
-        >
-          RESTAURANTES
-        </div>
-
-        <div className="card-body">
-          {loadingRestaurants ? (
-            <p className="text-muted mb-0">Cargando restaurantes...</p>
-          ) : errorRestaurants ? (
-            <div className="alert alert-danger py-2">{errorRestaurants}</div>
-          ) : restaurants.length === 0 ? (
-            <p className="text-muted mb-0">Aún no has creado restaurantes.</p>
-          ) : (
-            <ul className="list-group list-group-flush">
-              {restaurants.map((r) => (
-                <li key={r.id || r._id} className="list-group-item d-flex align-items-center">
-                  <div className="me-3">
-                    <div className="rounded-circle border border-1 border-secondary-subtle bg-light d-flex align-items-center justify-content-center" style={{ width: "48px", height: "48px", overflow: "hidden" }}>
-                      <img src={getAvatarFromText(r.name)} alt={r.name} className="img-fluid" style={{ objectFit: "cover", width: "100%", height: "100%" }} />
+                <div className="card-body">
+                  <div className="d-flex justify-content-center mb-4">
+                    <div className="rounded-circle border border-2 border-secondary-subtle bg-light d-flex align-items-center justify-content-center" style={{ width: 160, height: 160, overflow: "hidden" }}>
+                      <img src={getAvatarFromText(profileName)} alt="Avatar" className="img-fluid rounded-circle" style={{ objectFit: "cover", width: "100%", height: "100%" }} />
                     </div>
                   </div>
 
-                  <div className="me-3 text-truncate" style={{ maxWidth: "70%" }}>
-                    <div className="fw-semibold">{r.name}</div>
-                    {r.telefono && <div className="small text-muted">Teléfono: {r.telefono}</div>}
-                    {r.direccion && <div className="small">{r.direccion}</div>}
-                  </div>
-                </li>
-              ))}
-            </ul>
-          )}
+                  {isEditing ? (
+                    <form onSubmit={handleProfileSubmit}>
+                      <div className="mb-3">
+                        <label className="form-label">Nombre</label>
+                        <input className="form-control" value={profileName} onChange={(e) => setProfileName(e.target.value)} />
+                      </div>
+
+                      <div className="mb-3">
+                        <label className="form-label">Correo</label>
+                        <input type="email" className="form-control" value={email} onChange={(e) => setEmail(e.target.value)} />
+                      </div>
+
+                      <div className="mb-3">
+                        <label className="form-label">Teléfono</label>
+                        <input className="form-control" value={telefono} onChange={(e) => setTelefono(e.target.value)} />
+                      </div>
+
+                      <div className="mb-3">
+                        <label className="form-label">Dirección</label>
+                        <input className="form-control" value={direccion} onChange={(e) => setDireccion(e.target.value)} />
+                      </div>
+
+                      <div className="text-end">
+                        <button type="button" className="btn btn-outline-secondary me-2" onClick={() => setIsEditing(false)}>
+                          Cancelar
+                        </button>
+                        <button type="submit" className="btn text-white" style={{ backgroundColor: "rgb(59, 74, 99)" }} disabled={loading}>
+                          {loading ? "Guardando..." : "Guardar cambios"}
+                        </button>
+                      </div>
+                    </form>
+                  ) : (
+                    <>
+                      <div className="mb-2"><strong>Nombre:</strong> <div className="form-control-plaintext">{profileName || "-"}</div></div>
+                      <div className="mb-2"><strong>Correo:</strong> <div className="form-control-plaintext">{email || "-"}</div></div>
+                      <div className="mb-2"><strong>Teléfono:</strong> <div className="form-control-plaintext">{telefono || "-"}</div></div>
+                      <div className="mb-2"><strong>Dirección:</strong> <div className="form-control-plaintext">{direccion || "-"}</div></div>
+
+                      <div className="text-end mt-3">
+                        <button className="btn text-white" style={{ backgroundColor: "rgb(59, 74, 99)" }} onClick={() => setIsEditing(true)} disabled={!token}>
+                          Editar perfil
+                        </button>
+                      </div>
+                    </>
+                  )}
+                </div>
+              </div>
+            </div>
+
+            <div className="col-lg-6 mb-4">
+              <div className="card shadow-sm border-0">
+                <div className="card-header text-white text-uppercase fs-5 fw-semibold text-center" style={{ backgroundColor: "rgb(75, 101, 135)" }}>
+                  Restaurantes
+                </div>
+
+                <div className="card-body">
+                  {loading && <p className="text-muted">Cargando...</p>}
+                  {!loading && restaurants.length === 0 && <p className="text-muted mb-0">Aún no has creado restaurantes.</p>}
+
+                  {!loading && restaurants.length > 0 && (
+                    <ul className="list-group list-group-flush">
+                      {restaurants.map((r) => (
+                        <li key={r.id || r._id} className="list-group-item d-flex align-items-center">
+                          <div className="me-3">
+                            <div className="rounded-circle border border-1 border-secondary-subtle bg-light d-flex align-items-center justify-content-center" style={{ width: 48, height: 48, overflow: "hidden" }}>
+                              <img src={getAvatarFromText(r.name)} alt={r.name} className="img-fluid" style={{ objectFit: "cover", width: "100%", height: "100%" }} />
+                            </div>
+                          </div>
+                          <div style={{ maxWidth: "70%" }}>
+                            <div className="fw-semibold">{r.name}</div>
+                            {r.telefono && <div className="small text-muted">Teléfono: {r.telefono}</div>}
+                            {r.direccion && <div className="small">{r.direccion}</div>}
+                          </div>
+                        </li>
+                      ))}
+                    </ul>
+                  )}
+                </div>
+              </div>
+            </div>
+          </div>
         </div>
-      </div>
+      </main>
     </div>
   );
-}
+};
 
 export default Profile;

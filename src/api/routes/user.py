@@ -18,7 +18,7 @@ auth_bp = Blueprint('/api/user', __name__)
 
 CORS(auth_bp)
 
-url_front = os.getenv("FRONTEND_URL", "http://localhost:5173").rstrip("/")
+url_front = os.getenv("FRONTEND_URL").rstrip("/")
 
 
 @auth_bp.route('/resetPassword', methods=['POST'])
