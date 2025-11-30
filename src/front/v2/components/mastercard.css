@@ -1,0 +1,271 @@
+.mc-wrap {
+  max-width: 1200px;
+  margin: 0 auto;
+  border-radius: 22px;
+  overflow: hidden;
+  background: #fff;
+  box-shadow: 0 18px 45px rgba(0,0,0,0.10);
+  display: grid;
+  grid-template-columns: 260px 1fr;
+  min-height: calc(100vh - 56px);
+}
+
+.mc-side {
+  background: #1f2937; /* oscuro elegante */
+  color: #e5e7eb;
+  padding: 18px 14px;
+}
+
+.mc-brand {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 6px 10px 14px;
+  border-bottom: 1px solid rgba(255,255,255,0.08);
+  margin-bottom: 12px;
+}
+
+.mc-logo {
+  width: 34px;
+  height: 34px;
+  border-radius: 10px;
+  background: #2563eb;
+  display: grid;
+  place-items: center;
+  font-weight: 800;
+}
+
+.mc-brand-text {
+  font-weight: 800;
+  letter-spacing: 0.2px;
+}
+
+.mc-nav {
+  display: grid;
+  gap: 6px;
+  margin-top: 10px;
+}
+
+.mc-nav-item {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  border: 0;
+  background: transparent;
+  color: inherit;
+  text-align: left;
+  padding: 10px 10px;
+  border-radius: 12px;
+  cursor: pointer;
+}
+
+.mc-nav-item:hover {
+  background: rgba(255,255,255,0.06);
+}
+
+.mc-nav-item.is-active {
+  background: rgba(37,99,235,0.24);
+  outline: 1px solid rgba(37,99,235,0.35);
+}
+
+.mc-nav-item:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+.mc-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 999px;
+  background: rgba(255,255,255,0.45);
+}
+
+.mc-main {
+  background: #f7f8fb;
+  padding: 18px;
+}
+
+.mc-topbar {
+  background: #fff;
+  border: 1px solid #eee;
+  border-radius: 16px;
+  padding: 14px 14px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.mc-page-title {
+  font-weight: 800;
+  font-size: 18px;
+}
+
+.mc-muted {
+  margin-top: 4px;
+  font-size: 12px;
+  color: #6b7280;
+}
+
+.mc-topbar-right {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.mc-select {
+  border: 1px solid #e5e7eb;
+  background: #fff;
+  border-radius: 12px;
+  padding: 10px 12px;
+}
+
+.mc-cta {
+  border: 1px solid #2563eb;
+  background: #2563eb;
+  color: #fff;
+  border-radius: 12px;
+  padding: 10px 12px;
+  cursor: pointer;
+  font-weight: 700;
+}
+
+.mc-content {
+  margin-top: 14px;
+  display: grid;
+  gap: 14px;
+}
+
+.mc-stats {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.mc-stat {
+  background: #fff;
+  border: 1px solid #eee;
+  border-radius: 16px;
+  padding: 14px;
+}
+
+.mc-stat-value {
+  font-size: 22px;
+  font-weight: 900;
+}
+
+.mc-stat-label {
+  margin-top: 4px;
+  color: #6b7280;
+  font-size: 12px;
+}
+
+.mc-grid-2 {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+}
+
+@media (max-width: 980px) {
+  .mc-wrap { grid-template-columns: 1fr; }
+  .mc-grid-2 { grid-template-columns: 1fr; }
+  .mc-stats { grid-template-columns: 1fr; }
+}
+
+.mc-panel {
+  background: #fff;
+  border: 1px solid #eee;
+  border-radius: 16px;
+  padding: 14px;
+}
+
+.mc-panel-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  margin-bottom: 10px;
+}
+
+.mc-panel-head h3 {
+  margin: 0;
+  font-size: 14px;
+  font-weight: 800;
+}
+
+.mc-table {
+  border: 1px solid #eee;
+  border-radius: 14px;
+  overflow: hidden;
+}
+
+.mc-tr {
+  display: grid;
+  grid-template-columns: 1fr 120px;
+  gap: 10px;
+  padding: 10px 12px;
+  border-top: 1px solid #eee;
+}
+
+.mc-th {
+  border-top: 0;
+  background: #fafafa;
+  font-weight: 800;
+  font-size: 12px;
+  color: #374151;
+}
+
+.mc-td {
+  font-size: 13px;
+}
+
+.mc-empty {
+  padding: 16px;
+  color: #6b7280;
+  font-size: 13px;
+}
+
+.mc-error {
+  background: #fff5f5;
+  border: 1px solid #fecaca;
+  color: #991b1b;
+  padding: 10px 12px;
+  border-radius: 12px;
+  margin-bottom: 10px;
+}
+
+.mc-footer {
+  padding: 10px 12px;
+  border-top: 1px solid #eee;
+  font-weight: 800;
+}
+
+.mc-cards {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+  gap: 12px;
+}
+
+.mc-card {
+  border: 1px solid #eee;
+  background: #fff;
+  border-radius: 16px;
+  padding: 12px;
+  cursor: pointer;
+  text-align: left;
+}
+
+.mc-card:hover {
+  background: #fafafa;
+}
+
+.mc-card-title {
+  font-weight: 900;
+}
+
+.mc-card-sub {
+  margin-top: 6px;
+  font-size: 12px;
+  color: #6b7280;
+}

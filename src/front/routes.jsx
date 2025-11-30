@@ -10,11 +10,14 @@ import LandingPage from "./pages/LandingPage";
 import Home from "./pages/Home";
 import Single from "./pages/Single";
 import Demo from "./pages/Demo";
-import Login from "./pages/Login";
-import Register from "./pages/Register";
+//import Login from "./pages/Login";
+//import Register from "./pages/Register";
 import { CreateRestaurantForm } from "./pages/CreateRestaurantForm";
 import Profile from "./pages/Profile";
 import ResetPassword from "./pages/ResetPassword";
+import LoginV2 from "./v2/pages/Login.jsx";
+import RegisterV2 from "./v2/pages/Register.jsx";
+import HomeV2 from "./v2/pages/Home.jsx";
 
 export const router = createBrowserRouter(
   createRoutesFromElements(
@@ -24,11 +27,17 @@ export const router = createBrowserRouter(
         <Route index element={<LandingPage />} />
         <Route path="/home" element={<Home />} />
         <Route path="demo" element={<Demo />} />
+        <Route path="/app" element={<HomeV2 />} />
+        {/*
         <Route path="login" element={<Login />} />
         <Route path="register" element={<Register />} />
+        */}
         <Route path="user/restaurants" element={<CreateRestaurantForm />} />
         <Route path="profile" element={<Profile />} />
         <Route path="resetPassword/:token*" element={<ResetPassword />} />
+        <Route path="/login" element={<LoginV2 />} />
+        <Route path="/register" element={<RegisterV2 />} />
+
       </Route>
 
       <Route path="single/:theId" element={<Single />} />

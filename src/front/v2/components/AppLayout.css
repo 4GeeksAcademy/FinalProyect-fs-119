@@ -1,0 +1,84 @@
+.v2-shell {
+  min-height: 100vh;
+  display: flex;
+  background: #f6f8fb;
+  font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif;
+}
+
+.v2-sidebar {
+  width: 260px;
+  background: #0b3b8f; /* azul tipo Facebook oscuro */
+  color: #fff;
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+}
+
+.v2-brand {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-weight: 800;
+  font-size: 18px;
+  margin-bottom: 18px;
+}
+
+.v2-brand-icon {
+  width: 36px;
+  height: 36px;
+  display: grid;
+  place-items: center;
+  background: rgba(255, 255, 255, 0.15);
+  border-radius: 10px;
+}
+
+.v2-nav {
+  display: grid;
+  gap: 8px;
+}
+
+.v2-link {
+  display: block;
+  padding: 10px 12px;
+  border-radius: 10px;
+  color: rgba(255, 255, 255, 0.85);
+  text-decoration: none;
+  transition: background 0.15s ease, color 0.15s ease;
+}
+
+.v2-link:hover {
+  background: rgba(255, 255, 255, 0.12);
+  color: #fff;
+}
+
+.v2-link.active {
+  background: rgba(255, 255, 255, 0.18);
+  color: #fff;
+}
+
+.v2-sidebar-footer {
+  margin-top: auto;
+  padding-top: 14px;
+  border-top: 1px solid rgba(255, 255, 255, 0.22);
+}
+
+.v2-logout {
+  width: 100%;
+  text-align: left;
+  padding: 10px 12px;
+  border-radius: 10px;
+  border: 1px solid rgba(255, 255, 255, 0.28);
+  background: transparent;
+  color: #fff;
+  cursor: pointer;
+  transition: background 0.15s ease;
+}
+
+.v2-logout:hover {
+  background: rgba(255, 255, 255, 0.12);
+}
+
+.v2-main {
+  flex: 1;
+  padding: 24px;
+}

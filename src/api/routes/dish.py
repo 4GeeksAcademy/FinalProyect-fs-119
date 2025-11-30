@@ -33,28 +33,29 @@ def create_dish(restaurant_id):
     name = body['name'].strip()
 
     category_id = body.get('category_id')
-    if category_id is None:
-        return jsonify({
-            'msg': 'El campo "category_id" es obligatorio'
-        }), 400
+
+    category = None
+
+    if category_id is not None:
+        category = Categories.query.filter_by(
+            id=category_id,
+            restaurant_id=restaurant_id
+        ).first()
+
+        if category is None:
+            return jsonify({
+                'msg': f'La categoria {category_id} no existe en el restaurante {restaurant_id}'
+            }), 400
     
-    category = Categories.query.filter_by(
-        id = category_id,
-        restaurant_id = restaurant_id
-    ).first()
-    if category is None:
-        return jsonify({
-            'msg': f'La categoria {category_id} no existe en el restaurante {restaurant_id}'
-        }), 400
     
-    exist = Dishes.query.filter_by(
-        category_id = category_id,
-        name = name
-    ).first()
-    if exist:
-        return jsonify({
-            'msg': f'Ya existe un plato con nombre {name} en esta categoria'
-        }), 400
+        exist = Dishes.query.filter_by(
+            category_id = category_id,
+            name = name
+        ).first()
+        if exist:
+            return jsonify({
+                'msg': f'Ya existe un plato con nombre {name} en esta categoria'
+            }), 400
     
     description = body.get('description')
 
@@ -119,7 +120,7 @@ def get_dish(restaurant_id, dish_id):
 def get_all_dishes(restaurant_id):
 
     restaurant = Restaurant.query.get(restaurant_id)
-    if restaurant in None:
+    if restaurant is None:
         return jsonify({
             'msg': f'El restaurante con ID {restaurant_id} no existe'
         }), 404
