@@ -1,47 +1,44 @@
-import { Row, Col, Card, Button } from "react-bootstrap";
+// src/front/pages/CategoryList.jsx
+import React from "react";
 
 const CategoryList = ({ categories = [], onDelete }) => {
   // Filtramos valores inválidos
-  const safeCategories = categories.filter(cat => cat && cat.name);
+  const safeCategories = categories.filter((cat) => cat && cat.name);
+
+  if (!safeCategories.length) {
+    return <div className="mc-empty">No hay categorías todavía.</div>;
+  }
 
   return (
-    <Row className="g-3 mb-5">
+    <div className="mc-cards">
       {safeCategories.map((cat) => (
-        <Col key={cat.id} xs={6} md={3} lg={2}>
-          <Card
-            className="text-center p-3 shadow-sm"
-            style={{ backgroundColor: "#F0E5CF", color: "#4B6587", position: "relative" }}
-          >
-            <Card.Body>
-              <div
-                className="rounded-circle d-flex align-items-center justify-content-center mx-auto mb-2"
-                style={{
-                  width: "80px",
-                  height: "80px",
-                  backgroundColor: "#F9C784",
-                  color: "#4B6587",
-                  fontSize: "18px",
-                }}
-              >
-                {cat.name[0]?.toUpperCase() || "?"}
-              </div>
-              <Card.Title>{cat.name || "Sin nombre"}</Card.Title>
+        <div key={cat.id} className="mc-card mc-card--category">
+          {/* “Avatar” circular con la inicial, estilo hub */}
+          <div className="mc-card-avatar">
+            {cat.name[0]?.toUpperCase() || "?"}
+          </div>
 
-              {onDelete && (
-                <Button
-                  variant="danger"
-                  size="sm"
-                  style={{ position: "absolute", top: "5px", right: "5px" }}
-                  onClick={() => onDelete(cat.id)}
-                >
-                  &times;
-                </Button>
-              )}
-            </Card.Body>
-          </Card>
-        </Col>
+          <div className="mc-card-body">
+            <div className="mc-card-title">{cat.name}</div>
+            {cat.image_url && (
+              <div className="mc-card-sub mc-card-sub--muted">
+                Imagen asociada
+              </div>
+            )}
+          </div>
+
+          {onDelete && (
+            <button
+              type="button"
+              className="mc-card-delete"
+              onClick={() => onDelete(cat.id)}
+            >
+              ×
+            </button>
+          )}
+        </div>
       ))}
-    </Row>
+    </div>
   );
 };
 

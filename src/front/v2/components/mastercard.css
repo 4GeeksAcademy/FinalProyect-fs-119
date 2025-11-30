@@ -248,24 +248,60 @@
 }
 
 .mc-card {
-  border: 1px solid #eee;
-  background: #fff;
+  position: relative;
   border-radius: 16px;
-  padding: 12px;
-  cursor: pointer;
-  text-align: left;
+  padding: 1rem;
+  background: #ffffff;
+  box-shadow: 0 2px 6px rgba(15, 23, 42, 0.08);
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.mc-card-avatar {
+  flex-shrink: 0;
+  width: 44px;
+  height: 44px;
+  border-radius: 999px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 600;
+  font-size: 1.2rem;
+  background: #e5f0ff;
+  color: #3b4a63;
+}
+
+.mc-card-body {
+  flex: 1;
+  min-width: 0;
+}
+
+.mc-card-title {
+  font-weight: 600;
+  font-size: 0.98rem;
+  color: #1f2933;
 }
 
 .mc-card:hover {
   background: #fafafa;
 }
 
-.mc-card-title {
-  font-weight: 900;
-}
+
 
 .mc-card-sub {
   margin-top: 6px;
   font-size: 12px;
   color: #6b7280;
+}
+
+.mc-card-delete {
+  position: absolute;
+  top: 6px;
+  right: 8px;
+  border: none;
+  background: transparent;
+  font-size: 1.1rem;
+  cursor: pointer;
+  color: #d14343;
 }

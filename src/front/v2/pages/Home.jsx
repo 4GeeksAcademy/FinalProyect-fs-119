@@ -1,3 +1,4 @@
+// src/front/v2/pages/Home.jsx
 import React, { useEffect } from "react";
 import useGlobalReducer from "../../hooks/useGlobalReducer";
 import { api } from "../services/api";
@@ -6,72 +7,98 @@ import "./home.css";
 
 export default function HomeV2() {
   const { store, dispatch } = useGlobalReducer();
+  const userId = localStorage.getItem("user_id");
 
-  const token = localStorage.getItem("token");
-  const userId = localStorage.getItem("user_id"); // si no existe, lo metemos luego (o lo sacamos del JWT en login)
-
-  // Restaurantes del usuario
+  // 1) Cargar restaurantes del usuario al entrar en /app
   useEffect(() => {
-    if (!userId || !token) return;
+    if (!userId) return;
 
-    (async () => {
+    const loadRestaurants = async () => {
+      dispatch({ type: "set_loading", payload: { restaurants: true } });
       try {
-        dispatch({ type: "set_loading", payload: { restaurants: true } });
+        const data = await api.getRestaurants(userId);
+        const list = Array.isArray(data.restaurants) ? data.restaurants : [];
+
+        dispatch({ type: "set_restaurants", payload: list });
         dispatch({ type: "set_error", payload: { restaurants: null } });
 
-        const data = await api.getRestaurants(userId);
-        const restaurants = data?.restaurants || [];
-        dispatch({ type: "set_restaurants", payload: restaurants });
-
-        // MVP UX: si solo hay 1 restaurante y aún no hay seleccionado -> lo seleccionamos y vamos a dashboard
-        if (!store.currentRestaurant && restaurants.length === 1) {
-          dispatch({ type: "set_currentRestaurant", payload: restaurants[0] });
-          dispatch({ type: "set_currentView", payload: "dashboard" });
-        }
-      } catch (e) {
-        dispatch({ type: "set_error", payload: { restaurants: e.message || "Error cargando restaurantes" } });
+        // Opcional: si no hay restaurante seleccionado y hay alguno, podríamos autoseleccionar más adelante.
+      } catch (err) {
+        console.error(err);
+        dispatch({
+          type: "set_error",
+          payload: { restaurants: err.message || "Error cargando restaurantes" },
+        });
       } finally {
         dispatch({ type: "set_loading", payload: { restaurants: false } });
       }
-    })();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [userId, token, dispatch]);
+    };
 
-  // Datos del restaurante actual
+    loadRestaurants();
+  }, [userId, dispatch]);
+
+  // 2) Cuando el usuario selecciona un restaurante -> cargar dishes + ingredientes + categorías de ese restaurante
   useEffect(() => {
     const rid = store.currentRestaurant?.id;
-    if (!rid || !token) return;
+    if (!rid) return;
 
-    (async () => {
+    const loadRestaurantData = async () => {
+      dispatch({
+        type: "set_loading",
+        payload: { dishes: true, ingredients: true, categories: true },
+      });
+
       try {
-        dispatch({ type: "set_loading", payload: { dishes: true, ingredients: true, categories: true } });
-
-        const [dishes, ingredients, categories] = await Promise.all([
+        const [dishesData, ingredientsData, categoriesData] = await Promise.all([
           api.getDishes(rid),
           api.getIngredients(rid),
           api.getCategories(rid),
         ]);
 
-        dispatch({ type: "set_dishes", payload: dishes?.dishes || [] });
-        dispatch({ type: "merge_currentRestaurant", payload: { ingredients: ingredients?.ingredients || [] } });
-        dispatch({ type: "merge_currentRestaurant", payload: { categories: categories?.categories || [] } });
-      } catch (e) {
+        dispatch({
+          type: "set_dishes",
+          payload: Array.isArray(dishesData?.dishes) ? dishesData.dishes : [],
+        });
+
+        dispatch({
+          type: "merge_currentRestaurant",
+          payload: {
+            ingredients: Array.isArray(ingredientsData?.ingredients)
+              ? ingredientsData.ingredients
+              : [],
+            categories: Array.isArray(categoriesData?.categories)
+              ? categoriesData.categories
+              : [],
+          },
+        });
+
+        dispatch({
+          type: "set_error",
+          payload: { dishes: null, ingredients: null, categories: null },
+        });
+      } catch (err) {
+        console.error(err);
         dispatch({
           type: "set_error",
           payload: {
-            dishes: e.message || "Error cargando datos",
-            ingredients: e.message || "Error cargando datos",
-            categories: e.message || "Error cargando datos",
+            dishes: err.message,
+            ingredients: err.message,
+            categories: err.message,
           },
         });
       } finally {
-        dispatch({ type: "set_loading", payload: { dishes: false, ingredients: false, categories: false } });
+        dispatch({
+          type: "set_loading",
+          payload: { dishes: false, ingredients: false, categories: false },
+        });
       }
-    })();
-  }, [store.currentRestaurant?.id, token, dispatch]);
+    };
+
+    loadRestaurantData();
+  }, [store.currentRestaurant?.id, dispatch]);
 
   return (
-    <div className="v2-app-shell">
+    <div className="home-shell">
       <MasterCard store={store} dispatch={dispatch} />
     </div>
   );
