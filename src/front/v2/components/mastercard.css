@@ -5,15 +5,45 @@
   overflow: hidden;
   background: #fff;
   box-shadow: 0 18px 45px rgba(0,0,0,0.10);
-  display: grid;
+  display: flex;              /* base: flex */
   grid-template-columns: 260px 1fr;
   min-height: calc(100vh - 56px);
 }
 
+/* SIDEBAR: overlay por defecto (móvil) */
 .mc-side {
-  background: #1f2937; /* oscuro elegante */
+  position: fixed;
+  top: 0;
+  left: 0;
+  bottom: 0;
+  width: 260px;
+  background:  #2959A3; /* oscuro elegante */
   color: #e5e7eb;
   padding: 18px 14px;
+  transform: translateX(-100%);
+  transition: transform 0.2s ease-out;
+  z-index: 40;
+  overflow-y: auto;
+}
+
+.mc-side--open {
+  transform: translateX(0);
+}
+
+/* NUEVO: backdrop para cuando el menú está abierto en móvil */
+.mc-side-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(15, 23, 42, 0.35);
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.2s ease-out;
+  z-index: 30;
+}
+
+.mc-side-backdrop--visible {
+  opacity: 1;
+  pointer-events: auto;
 }
 
 .mc-brand {
@@ -25,14 +55,22 @@
   margin-bottom: 12px;
 }
 
-.mc-logo {
-  width: 34px;
-  height: 34px;
-  border-radius: 10px;
-  background: #2563eb;
-  display: grid;
-  place-items: center;
-  font-weight: 800;
+.mc-logo img {
+  height: 40px;
+  width: 40px;
+  display: block;
+  object-fit: contain;
+}
+
+/* Botón del logo-hamburguesa (se oculta en desktop más abajo) */
+.mc-logo-toggle {
+  border: none;
+  background: none;
+  padding: 0;
+  margin: 0;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
 }
 
 .mc-brand-text {
@@ -43,7 +81,7 @@
 .mc-nav {
   display: grid;
   gap: 6px;
-  margin-top: 10px;
+  margin-top: 1rem;
 }
 
 .mc-nav-item {
@@ -84,17 +122,19 @@
 .mc-main {
   background: #f7f8fb;
   padding: 18px;
+  flex: 1;  /* NUEVO: para que el main ocupe el espacio restante */
 }
 
 .mc-topbar {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.5rem 0.75rem;
+  border-bottom: 1px solid rgba(15, 23, 42, 0.06);
   background: #fff;
   border: 1px solid #eee;
   border-radius: 16px;
-  padding: 14px 14px;
-  display: flex;
-  align-items: center;
   justify-content: space-between;
-  gap: 12px;
 }
 
 .mc-page-title {
@@ -122,13 +162,30 @@
 }
 
 .mc-cta {
-  border: 1px solid #2563eb;
+  border: none;
+  border-radius: 9999px;
+  padding: 0.45rem 1.1rem;
+  font-size: 0.9rem;
+  font-weight: 600;
   background: #2563eb;
-  color: #fff;
-  border-radius: 12px;
-  padding: 10px 12px;
+  color: #ffffff;
   cursor: pointer;
-  font-weight: 700;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.25rem;
+  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.2);
+  transition: background-color 0.15s ease, transform 0.05s ease;
+}
+
+.mc-cta:hover {
+  background: #1d4ed8;
+  transform: translateY(-0.5px);
+}
+
+.mc-cta:disabled {
+  opacity: 0.6;
+  cursor: default;
 }
 
 .mc-content {
@@ -168,11 +225,18 @@
 }
 
 @media (max-width: 980px) {
-  .mc-wrap { grid-template-columns: 1fr; }
-  .mc-grid-2 { grid-template-columns: 1fr; }
-  .mc-stats { grid-template-columns: 1fr; }
+  .mc-wrap { 
+    grid-template-columns: 1fr;
+  }
+  .mc-grid-2 { 
+    grid-template-columns: 1fr; 
+  }
+  .mc-stats { 
+    grid-template-columns: 1fr; 
+  }
 }
 
+/* PANEL CENTRAL */
 .mc-panel {
   background: #fff;
   border: 1px solid #eee;
@@ -227,12 +291,9 @@
 }
 
 .mc-error {
-  background: #fff5f5;
-  border: 1px solid #fecaca;
-  color: #991b1b;
-  padding: 10px 12px;
-  border-radius: 12px;
-  margin-bottom: 10px;
+  margin-top: 0.25rem;
+  font-size: 0.85rem;
+  color: #b91c1c;
 }
 
 .mc-footer {
@@ -287,8 +348,6 @@
   background: #fafafa;
 }
 
-
-
 .mc-card-sub {
   margin-top: 6px;
   font-size: 12px;
@@ -304,4 +363,235 @@
   font-size: 1.1rem;
   cursor: pointer;
   color: #d14343;
+}
+
+/* FORMULARIOS UNIFICADOS */
+.mc-form {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;   
+}
+
+.mc-field {
+  display: flex;
+  flex-direction: column;
+  margin-bottom: 0.75rem;
+}
+
+.mc-field > span {
+  font-size: 0.9rem;
+  font-weight: 500;
+  margin-bottom: 0.25rem;
+  color: #0f172a;         /* similar a text-slate-900 */
+}
+
+.mc-field input,
+.mc-field select,
+.mc-field textarea,
+.mc-input {
+  display: block;
+  width: 100%;
+  padding: 0.5rem 0.75rem;
+  border: 1px solid rgba(15, 23, 42, 0.18);
+  border-radius: 0.375rem;
+  background-color: #ffffff;
+  font-size: 0.95rem;
+  line-height: 1.4;
+  box-sizing: border-box;
+  outline: none;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease,
+    background-color 0.15s ease;
+}
+
+.mc-field input:focus,
+.mc-field select:focus,
+.mc-field textarea:focus,
+.mc-input:focus {
+  border-color: #2563eb;
+  box-shadow: 0 0 0 1px rgba(37, 99, 235, 0.15);
+  background-color: #f8fafc;
+}
+
+.mc-field input::placeholder,
+.mc-field textarea::placeholder {
+  color: #9ca3af;
+  font-size: 0.9rem;
+}
+
+.mc-help {
+  margin-top: 0.25rem;
+  font-size: 0.8rem;
+  color: #6b7280;   /* gris suave */
+}
+
+.mc-check {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.mc-check-input {
+  width: 1rem;
+  height: 1rem;
+  border-radius: 0.25rem;
+  border: 1px solid rgba(15, 23, 42, 0.25);
+  accent-color: #2563eb; /* color del check */
+}
+
+.mc-check-label {
+  font-size: 0.9rem;
+}
+
+.mc-form-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 0.5rem;
+  margin-top: 0.5rem;
+}
+
+.mc-btn-secondary,
+.mc-cta.mc-cta-secondary {
+  border: 1px solid rgba(148, 163, 184, 0.8);
+  background: #ffffff;
+  color: #0f172a;
+  box-shadow: none;
+}
+
+.mc-btn-secondary:hover,
+.mc-cta.mc-cta-secondary:hover {
+  background: #f9fafb;
+}
+
+/* --- RESPONSIVE DESKTOP: sidebar fijo dentro del hub --- */
+@media (min-width: 980px) {
+  .mc-wrap {
+    display: grid;
+    grid-template-columns: 260px 1fr;
+  }
+
+  .mc-side {
+    position: static;
+    transform: none;
+  }
+
+  .mc-side-backdrop {
+    display: none;
+  }
+
+  .mc-logo-toggle {
+    display: none; /* en desktop no necesitamos el botón de menú */
+  }
+}
+
+.mc-dish-cost {
+  margin-top: 8px;
+  font-size: 0.9rem;
+  color: #6b7280; /* gris suave para el texto "Coste total" */
+}
+
+.mc-dish-cost-value {
+  font-size: 1.4rem;
+  font-weight: 800;
+  color: #111827; /* casi negro, bien legible */
+}
+/* --- Lista de platos (cards) --- */
+
+.mc-cards--dishes {
+  /* ya hereda el grid de .mc-cards */
+}
+
+/* Card específica de platos: ajustamos alineación flex */
+.mc-card.mc-card--dish {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+}
+
+/* Bloque de coste grande dentro de la card */
+.mc-card-cost-block {
+  text-align: right;
+  min-width: 90px;
+}
+
+.mc-card-cost-label {
+  font-size: 0.75rem;
+  color: #6b7280; /* gris suave */
+}
+
+.mc-card-cost-value {
+  font-size: 1.25rem;
+  font-weight: 800;
+  color: #111827;
+  margin-top: 2px;
+}
+
+/* Acciones de la card (Ver / Eliminar) */
+.mc-card-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  align-items: flex-end;
+}
+
+/* Botón "fantasma" coherente con el resto del hub */
+.mc-btn-ghost {
+  border: 1px solid rgba(148, 163, 184, 0.6);
+  background: #ffffff;
+  color: #111827;
+  border-radius: 999px;
+  padding: 0.25rem 0.7rem;
+  font-size: 0.8rem;
+  cursor: pointer;
+}
+
+.mc-btn-ghost:hover {
+  background: #f9fafb;
+}
+
+/* Link de peligro (lo usas ya para eliminar líneas de DI) */
+.mc-link-danger {
+  border: none;
+  background: transparent;
+  color: #b91c1c;
+  font-size: 0.8rem;
+  cursor: pointer;
+  padding: 0;
+}
+
+.mc-link-danger:hover {
+  text-decoration: underline;
+}
+
+@media (max-width: 980px) {
+  .mc-wrap {
+    grid-template-columns: 1fr;
+  }
+  .mc-grid-2 {
+    grid-template-columns: 1fr;
+  }
+  .mc-stats {
+    grid-template-columns: 1fr;
+  }
+
+  /* 🔹 Que el contenedor principal permita el sticky sin cortes raros */
+  .mc-main {
+    position: relative;
+    padding-top: 8px; /* un poco de aire arriba en móvil */
+  }
+
+  /* 🔹 Header sticky solo en pantallas pequeñas */
+  .mc-topbar {
+    position: sticky;
+    top: 0;
+    z-index: 20;              /* por encima del contenido */
+    border-radius: 0 0 16px 16px; /* arriba plano para que parezca “pegado” */
+    background: #ffffff;      /* fondo sólido para que no se vea el scroll debajo */
+    box-shadow: 0 2px 6px rgba(15, 23, 42, 0.08); /* pequeña sombra al hacer scroll */
+  }
+
+  /* Un pelín de margen sobre el contenido para que no se pegue demasiado */
+  .mc-content {
+    margin-top: 10px;
+  }
 }

@@ -49,7 +49,7 @@
 /* La letra "a" con color de acento */
 .accent-char {
   font-weight: 700; /* font-bold */
-  color: hsl(180, 65%, 90%); /* text-accent */
+  color: #2959A3; /* text-accent */
   padding-left: 0.125rem; /* px-0.5 */
   padding-right: 0.125rem;
 }

@@ -22,10 +22,35 @@ export const initialStore = () => ({
     showDishModal: false,
   },
   selectedCategory: null,
+
+  auth: {
+    userId: null,
+    isAuthenticated: false,
+  },
+
+
 });
+
 
 export default function storeReducer(store, action = {}) {
   switch (action.type) {
+
+    case "reset_store":
+      return initialStore();
+
+    case "auth_login": {
+      const next = initialStore();
+      next.auth = {
+        userId: action.payload?.userId ?? null,
+        isAuthenticated: true,
+      };
+      return next;
+    }
+
+    case "auth_logout":
+      return initialStore();
+
+
     case "set_currentView":
       return { ...store, currentView: action.payload };
 

@@ -15,14 +15,12 @@ const PlateIcon = (props) => (
     xmlns="http://www.w3.org/2000/svg"
     {...props}
   >
-    <circle cx="12" cy="12" r="10" />
-    <circle cx="12" cy="12" r="7" />
   </svg>
 );
 
 export function AnimatedNavbrand() {
   return (
-    <a href="/" className="animated-navbrand-group" aria-label="Set a Meal Homepage">
+    <div className="animated-navbrand-group" aria-hidden="true">
       <PlateIcon className="plate-icon" />
       <div className="brand-text-container" aria-hidden="true">
         <span>s</span>
@@ -35,6 +33,6 @@ export function AnimatedNavbrand() {
         </div>
         <span>l</span>
       </div>
-    </a>
+    </div>
   );
 }
