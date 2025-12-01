@@ -38,12 +38,16 @@ class UsersModelView(ModelView):
 
 
 class RestaurantModelView(ModelView):
-    column_list = ['id', 'owner', 'name', 'telefono', 'direccion','is_active']
-    column_labels = {'owner': 'Owner (User)'}
+    column_list = ['id', 'owner', 'name', 'telefono', 'direccion', 'lat', 'lng', 'is_active']
+    column_labels = {
+        'owner': 'Owner (User)',
+        'lat': 'Lat',
+        'lng': 'Lng',
+    }
     column_searchable_list = ['name', 'owner.name', 'owner.email']
     column_filters = ['is_active']
 
-    form_columns = ['owner','name', 'telefono', 'direccion', 'is_active']
+    form_columns = ['owner', 'name', 'telefono', 'direccion', 'lat', 'lng', 'is_active']
 
     form_ajax_refs = {
         'owner': {

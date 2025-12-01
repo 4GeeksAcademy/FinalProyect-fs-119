@@ -97,59 +97,63 @@ class Restaurant(db.Model):
 
     id: Mapped[int] = mapped_column(primary_key=True)
     company_id: Mapped[int] = mapped_column(
-        ForeignKey('user.id', ondelete="CASCADE"), 
-        nullable=False, 
+        ForeignKey('user.id', ondelete="CASCADE"),
+        nullable=False,
         index=True
-        )
+    )
     name: Mapped[str] = mapped_column(String(120), nullable=False)
     telefono: Mapped[int] = mapped_column(nullable=True)
     direccion: Mapped[str] = mapped_column(String(120), nullable=True)
+    lat: Mapped[float | None] = mapped_column(Numeric(9, 6), nullable=True)
+    lng: Mapped[float | None] = mapped_column(Numeric(9, 6), nullable=True)
     is_active: Mapped[bool] = mapped_column(Boolean(), nullable=False, default=True)
 
-    owner: Mapped['User'] = relationship(
-        'User', 
-        back_populates='restaurants', 
+    owner: Mapped["User"] = relationship(
+        "User",
+        back_populates="restaurants",
         foreign_keys=[company_id],
-        passive_deletes=True
-        ) 
-    
-    categories: Mapped[list['Categories']] = relationship(
-        back_populates='restaurant', 
-        cascade='all, delete-orphan', 
+        passive_deletes=True,
+    )
+
+    categories: Mapped[list["Categories"]] = relationship(
+        back_populates="restaurant",
+        cascade="all, delete-orphan",
         single_parent=True,
-        passive_deletes=True
-        )
-    
-    ingredients: Mapped[list['Ingredients']] = relationship(
-        back_populates='restaurant', 
-        cascade='all, delete-orphan', 
+        passive_deletes=True,
+    )
+
+    ingredients: Mapped[list["Ingredients"]] = relationship(
+        back_populates="restaurant",
+        cascade="all, delete-orphan",
         single_parent=True,
-        passive_deletes=True
-        )
-    
+        passive_deletes=True,
+    )
+
     dishes: Mapped[list["Dishes"]] = relationship(
-        back_populates="restaurant", 
-        cascade="all, delete-orphan", 
-        single_parent=True, 
-        passive_deletes=True
+        back_populates="restaurant",
+        cascade="all, delete-orphan",
+        single_parent=True,
+        passive_deletes=True,
     )
 
     __table_args__ = (
         Index("ix_restaurant_company_name", "company_id", "name"),
-        )
+    )
 
     def __repr__(self):
-        return f'Restaurant {self.name}'
+        return f"Restaurant {self.name}"
 
     def serialize(self):
         return {
-            "id": self.id, 
-            "name": self.name, 
+            "id": self.id,
             "company_id": self.company_id,
+            "name": self.name,
             "telefono": self.telefono,
-            "direccion": self.direccion,  
-            "is_active": self.is_active
-                }
+            "direccion": self.direccion,
+            "lat": float(self.lat) if self.lat is not None else None,
+            "lng": float(self.lng) if self.lng is not None else None,
+            "is_active": self.is_active,
+        }
 
 
 class Categories(db.Model):

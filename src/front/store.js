@@ -1,5 +1,5 @@
 export const initialStore = () => ({
-  currentView: "restaurants",
+  currentView: "dashboard",
   currentRestaurant: null,
   restaurants: [],
   dishes: [],

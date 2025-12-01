@@ -1,13 +1,10 @@
 from flask import Blueprint, request, jsonify
-from flask_cors import CORS
 #from decimal import Decimal, InvalidOperation
 #from sqlalchemy import asc, desc
 from ..models import db, Restaurant, Categories, Dishes, DishIngredient
 from api.extensions import has_value, _parse_decimal
 
 dish_bp = Blueprint('dish_bp', __name__, url_prefix='/api/restaurant/<int:restaurant_id>')
-
-CORS(dish_bp)
 
 
 
@@ -119,13 +116,13 @@ def get_dish(restaurant_id, dish_id):
 def get_all_dishes(restaurant_id):
 
     restaurant = Restaurant.query.get(restaurant_id)
-    if restaurant in None:
+    if restaurant is None:
         return jsonify({
             'msg': f'El restaurante con ID {restaurant_id} no existe'
         }), 404
     
     query = Dishes.query.filter_by(
-        restaurant_id = restaurant_id
+        restaurant_id=restaurant_id
     )
 
     dishes = query.all()
@@ -140,7 +137,6 @@ def get_all_dishes(restaurant_id):
         'msg': f'Listado de platos del restaurante {restaurant_id}',
         'dishes': dishes_serialized
     }), 200
-
 @dish_bp.route('/dishes/<int:dish_id>', methods=['DELETE'])
 def delete_dish(restaurant_id, dish_id):
 
