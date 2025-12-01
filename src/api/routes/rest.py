@@ -1,13 +1,11 @@
 from flask import Blueprint, request, jsonify
 from ..models import db, Restaurant, User
-from flask_cors import CORS
 from api.extensions import  has_value
 
 rest_bp = Blueprint('rest', __name__, url_prefix='/api/user/<int:user_id>')
 
 #---URL->/api/user/user_id/rest
 
-CORS(rest_bp)
 
 @rest_bp.route('/restaurant', methods=['POST'])
 def create_restaurant(user_id):
@@ -21,19 +19,24 @@ def create_restaurant(user_id):
         return jsonify({'msg': 'Debes enviar informacion en el body'}), 400
     if 'name' not in body:
         return jsonify({'msg': 'Debes proporcionar un nombre'}), 400
-    
+
     name = body['name'].strip()
     telefono = body.get('telefono')
     direccion = body.get('direccion')
 
-    new_restaurant = Restaurant(
-        company_id = user_id, 
-        name = name, 
-        telefono = telefono,
-        direccion = direccion,
-        is_active = True 
-        )
+    # nuevos campos opcionales
+    lat = body.get('lat')
+    lng = body.get('lng')
 
+    new_restaurant = Restaurant(
+        company_id=user_id,
+        name=name,
+        telefono=telefono,
+        direccion=direccion,
+        lat=lat,
+        lng=lng,
+        is_active=True,
+    )
 
     db.session.add(new_restaurant)
     db.session.commit()

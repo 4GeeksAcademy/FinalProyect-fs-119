@@ -1,33 +1,32 @@
 import React from "react";
 
-const calcMargin = (dish) => {
-  // Si tu dish tiene total_cost y price (selling price) calcula margen.
-  // Aquí uso placeholders: asumimos dish.total_cost y dish.price (si no existe mostrar '-')
-  const cost = dish.total_cost ?? dish.cost_price ?? 0;
-  const price = dish.price ?? dish.selling_price ?? null;
-  if (!price) return null;
-  const m = ((price - cost) / price) * 100;
-  return Number.isFinite(m) ? m.toFixed(1) : null;
-};
-
-export default function TopDishes({ dishes = [] }) {
-  // calculamos margen y ordenamos (si no hay price simplemente mostramos cost)
-  const withMargin = dishes.map((d) => ({ ...d, marginPct: calcMargin(d) }));
-  const sorted = [...withMargin].sort((a, b) => (b.marginPct ?? 0) - (a.marginPct ?? 0)).slice(0, 6);
+export default function TopDishes({ dishes }) {
+  const list = Array.isArray(dishes) ? dishes : [];
 
   return (
-    <div>
-      <table className="table table-borderless mb-0">
-        <tbody>
-          {sorted.map((d) => (
-            <tr key={d.id}>
-              <td>{d.name}</td>
-              <td style={{ width: 120 }} className="text-end text-primary">{d.marginPct !== null ? `${d.marginPct} %` : "-"}</td>
-            </tr>
-          ))}
-          {sorted.length === 0 && <tr><td colSpan={2} className="text-muted">No hay datos</td></tr>}
-        </tbody>
-      </table>
+    <div style={{ maxHeight: 260, overflowY: "auto" }}>
+      {list.map((d) => (
+        <div
+          key={d.id || d._id}
+          className="d-flex justify-content-between align-items-center py-2 border-bottom"
+        >
+          <div>
+            <div style={{ fontWeight: 600 }}>{d.name}</div>
+            <div style={{ fontSize: 12, color: "#6b7280" }}>
+              {d.description || ""}
+            </div>
+          </div>
+          <div style={{ textAlign: "right", minWidth: 110 }}>
+            <div style={{ fontSize: 12, color: "#6b7280" }}>Coste total</div>
+            <div style={{ fontWeight: 600 }}>
+              {(d.cost_price ?? 0).toFixed(4)} €
+            </div>
+          </div>
+        </div>
+      ))}
+      {list.length === 0 && (
+        <div className="text-muted small">Aún no hay platos.</div>
+      )}
     </div>
   );
 }

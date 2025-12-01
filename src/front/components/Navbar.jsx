@@ -4,21 +4,30 @@ import { Link } from "react-router-dom";
 export const Navbar = () => {
   return (
     <nav
-       className="navbar navbar-expand-lg navbar-dark sticky-top shadow-sm"
-      style={{ backgroundColor: "#4B6587" }}
+      className="navbar navbar-expand-lg shadow-sm"
+      style={{ backgroundColor: "#ffffff" }}
     >
       <div className="container-fluid">
-        
         <Link
           to="/"
-          className="navbar-brand fs-2 fw-bold"
-          style={{
-            fontFamily: "Brush Script MT, cursive",
-            color: "#F9C784",
-            textDecoration: "none",
-          }}
+          className="navbar-brand d-flex align-items-center"
+          style={{ textDecoration: "none" }}
         >
-          DISHCOST
+          <img
+            src="/ElLogoDefinitivo.svg"
+            alt="Set a meal logo"
+            style={{ height: 32, marginRight: 8 }}
+          />
+          <span
+            style={{
+              fontSize: "1.5rem",
+              fontWeight: 600,
+              color: "#18498b",
+              lineHeight: 1,
+            }}
+          >
+            set a meal
+          </span>
         </Link>
 
         <button
@@ -33,46 +42,27 @@ export const Navbar = () => {
           <span className="navbar-toggler-icon"></span>
         </button>
 
-        
-        <div className="collapse navbar-collapse justify-content-end" id="navbarNav">
+        <div
+          className="collapse navbar-collapse justify-content-end"
+          id="navbarNav"
+        >
           <ul className="navbar-nav align-items-lg-center">
-            <li className="nav-item mx-2">
-              <Link to="/" className="nav-link text-white fw-semibold">
-                Inicio
-              </Link>
-            </li>
-            
-            <li className="nav-item mx-2">
-              <Link to="/contact" className="nav-link text-white fw-semibold">
-                Contacto
-              </Link>
-            </li>
-            <li className="nav-item mx-2">
+            <li className="nav-item mx-3">
               <Link
-                to="/login"
-                className="btn btn-sm me-2"
-                style={{
-                  backgroundColor: "#F9C784",
-                  color: "#4B6587",
-                  fontWeight: "bold",
-                  border: "none",
-                }}
+                to="/logister?mode=register"
+                className="nav-link"
+                style={{ color: "#18498b", fontWeight: 500 }}
               >
-                Iniciar sesión
+                Registrate
               </Link>
             </li>
-            <li className="nav-item">
+            <li className="nav-item mx-3">
               <Link
-                to="/register"
-                className="btn btn-sm"
-                style={{
-                  backgroundColor: "#F0E5CF",
-                  color: "#4B6587",
-                  fontWeight: "bold",
-                  border: "none",
-                }}
+                to="/logister?mode=login"
+                className="nav-link"
+                style={{ color: "#18498b", fontWeight: 500 }}
               >
-                Regístrate
+                Inicia Sesion
               </Link>
             </li>
           </ul>

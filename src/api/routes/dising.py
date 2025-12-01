@@ -1,12 +1,10 @@
 from flask import Blueprint, request, jsonify
-from flask_cors import CORS
 #from decimal import Decimal, InvalidOperation
 from ..models import db,  Dishes, Ingredients, DishIngredient
 from api.extensions import  _parse_decimal
 
 dising_bp = Blueprint('dising_bp', __name__, url_prefix='/api/restaurant/<int:restaurant_id>')
 
-CORS(dising_bp)
 
 """"
 En el apartado "gross_weight" SIEMPRE se envian los valores en:

@@ -1,48 +1,29 @@
-import { Row, Col, Card, Button } from "react-bootstrap";
+import React from "react";
 
-const CategoryList = ({ categories = [], onDelete }) => {
-  // Filtramos valores inválidos
-  const safeCategories = categories.filter(cat => cat && cat.name);
+export default function CategoryList({ categories = [], onSelectCategory }) {
+  if (!categories || categories.length === 0) {
+    return <div className="text-muted">No hay categorías.</div>;
+  }
 
   return (
-    <Row className="g-3 mb-5">
-      {safeCategories.map((cat) => (
-        <Col key={cat.id} xs={6} md={3} lg={2}>
-          <Card
-            className="text-center p-3 shadow-sm"
-            style={{ backgroundColor: "#F0E5CF", color: "#4B6587", position: "relative" }}
+    <div className="d-flex flex-column gap-2">
+      {categories.map((c) => (
+        <div
+          key={c.id || c._id}
+          className="d-flex justify-content-between align-items-center p-2"
+          style={{ background: "#fff", borderRadius: 8 }}
+        >
+          <div
+            style={{ cursor: onSelectCategory ? "pointer" : "default" }}
+            onClick={() => onSelectCategory && onSelectCategory(c)}
           >
-            <Card.Body>
-              <div
-                className="rounded-circle d-flex align-items-center justify-content-center mx-auto mb-2"
-                style={{
-                  width: "80px",
-                  height: "80px",
-                  backgroundColor: "#F9C784",
-                  color: "#4B6587",
-                  fontSize: "18px",
-                }}
-              >
-                {cat.name[0]?.toUpperCase() || "?"}
-              </div>
-              <Card.Title>{cat.name || "Sin nombre"}</Card.Title>
-
-              {onDelete && (
-                <Button
-                  variant="danger"
-                  size="sm"
-                  style={{ position: "absolute", top: "5px", right: "5px" }}
-                  onClick={() => onDelete(cat.id)}
-                >
-                  &times;
-                </Button>
-              )}
-            </Card.Body>
-          </Card>
-        </Col>
+            <div style={{ fontWeight: 600 }}>{c.name}</div>
+            <div style={{ fontSize: 12, color: "#666" }}>
+              {c.description || ""}
+            </div>
+          </div>
+        </div>
       ))}
-    </Row>
+    </div>
   );
-};
-
-export default CategoryList;
+}

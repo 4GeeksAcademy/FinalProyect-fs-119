@@ -1,162 +1,173 @@
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
+import { APIProvider, Map, Marker } from "@vis.gl/react-google-maps";
 
-const API = (import.meta.env.VITE_BACKEND_URL || "").replace(/\/$/, "");
+const backdropStyleRest = {
+  position: "fixed",
+  top: 0,
+  left: 0,
+  width: "100%",
+  height: "100%",
+  background: "rgba(15,23,42,0.45)",
+  display: "flex",
+  justifyContent: "center",
+  alignItems: "center",
+  zIndex: 1500,
+};
 
-export default function CreateRestaurantModal({ show, onClose, onCreated }) {
+const modalStyleRest = {
+  background: "#ffffff",
+  padding: 24,
+  borderRadius: 16,
+  width: 520,
+  maxWidth: "95%",
+  maxHeight: "90%",
+  boxShadow: "0 24px 60px rgba(15,23,42,0.25)",
+  overflow: "hidden",
+};
+
+export default function CreateRestaurantModal({ show, onClose, onSave }) {
   const [name, setName] = useState("");
   const [telefono, setTelefono] = useState("");
   const [direccion, setDireccion] = useState("");
   const [loading, setLoading] = useState(false);
+  const [lat, setLat] = useState(null);
+  const [lng, setLng] = useState(null);
+
+  useEffect(() => {
+    if (!show) {
+      setName("");
+      setTelefono("");
+      setDireccion("");
+      setLat(null);
+      setLng(null);
+      setLoading(false);
+    }
+  }, [show]);
 
   if (!show) return null;
 
   const handleSave = async () => {
-    if (!name.trim()) {
-      alert("El nombre es obligatorio");
-      return;
-    }
-    setLoading(true);
+    if (!name.trim()) return alert("Nombre obligatorio");
+    const payload = {
+      name: name.trim(),
+      telefono,
+      direccion,
+      lat,
+      lng,
+    };
+
+    if (!onSave) return;
+
     try {
-      const user_id = localStorage.getItem("user_id");
-      const token = localStorage.getItem("token");
-      if (!user_id) throw new Error("No hay user_id en localStorage");
-
-      const res = await fetch(`${API}/api/user/${user_id}/restaurant`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          ...(token ? { Authorization: `Bearer ${token}` } : {}),
-        },
-        body: JSON.stringify({
-          name: name.trim(),
-          telefono: telefono.trim() || null,
-          direccion: direccion.trim() || null,
-        }),
-      });
-
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.msg || data.error || "Error");
-
-      const newRest = data.restaurante || data.restaurant || data;
-      onCreated && onCreated(newRest);
-      setName("");
-      setTelefono("");
-      setDireccion("");
-      onClose && onClose();
-    } catch (err) {
-      alert(err.message || String(err));
+      setLoading(true);
+      const res = await onSave(payload);
+      if (res && res.ok) {
+        setName("");
+        setTelefono("");
+        setDireccion("");
+        setLat(null);
+        setLng(null);
+        onClose && onClose();
+      } else {
+        alert(
+          res?.msg || res?.message || "No se pudo crear el restaurante"
+        );
+      }
+    } catch {
+      alert("Error creando restaurante");
     } finally {
       setLoading(false);
     }
   };
 
   return (
-    <div style={backdropStyle}>
-      <div style={cardStyle}>
-        <div style={headerStyle}>
-          <div style={titleStyle}>Nuevo restaurante</div>
+    <div style={backdropStyleRest}>
+      <div style={modalStyleRest}>
+        <div style={{ fontSize: 13, textTransform: "uppercase", color: "#6b7280", marginBottom: 4 }}>
+          Crear restaurante
+        </div>
+        <h3 style={{ marginTop: 0, marginBottom: 16, fontWeight: 700 }}>
+          Nuevo restaurante
+        </h3>
+
+        <input
+          className="form-control my-2"
+          placeholder="Nombre del restaurante"
+          value={name}
+          onChange={(e) => setName(e.target.value)}
+        />
+        <input
+          className="form-control my-2"
+          placeholder="Teléfono"
+          value={telefono}
+          onChange={(e) => setTelefono(e.target.value)}
+        />
+        <input
+          className="form-control my-2"
+          placeholder="Dirección"
+          value={direccion}
+          onChange={(e) => setDireccion(e.target.value)}
+        />
+
+        <div className="mt-3">
+          <label className="form-label" style={{ fontWeight: 600 }}>
+            Ubicación
+          </label>
+          <div style={{ height: 250, borderRadius: 12, overflow: "hidden" }}>
+            <APIProvider apiKey={import.meta.env.VITE_GOOGLE_MAPS_API_KEY}>
+              <Map
+                defaultCenter={{ lat: 40.4168, lng: -3.7038 }}
+                defaultZoom={13}
+                disableDefaultUI={true}
+                gestureHandling="greedy"
+                onClick={(e) => {
+                  const pos = e.detail.latLng;
+                  if (!pos) return;
+                  setLat(pos.lat);
+                  setLng(pos.lng);
+                }}
+              >
+                {lat !== null && lng !== null && (
+                  <Marker
+                    position={{ lat, lng }}
+                    draggable={true}
+                    onDragEnd={(e) => {
+                      const pos = e.latLng;
+                      if (!pos) return;
+                      const newLat =
+                        typeof pos.lat === "function" ? pos.lat() : pos.lat;
+                      const newLng =
+                        typeof pos.lng === "function" ? pos.lng() : pos.lng;
+                      setLat(newLat);
+                      setLng(newLng);
+                    }}
+                  />
+                )}
+              </Map>
+            </APIProvider>
+          </div>
+          <small className="text-muted">
+            Haz clic en el mapa o arrastra el pin para ajustar la ubicación.
+          </small>
         </div>
 
-        <div style={bodyStyle}>
-          <input
-            className="form-control my-2"
-            placeholder="Nombre del restaurante"
-            value={name}
-            onChange={(e) => setName(e.target.value)}
-            style={inputStyle}
-          />
-
-          <input
-            className="form-control my-2"
-            placeholder="Teléfono"
-            value={telefono}
-            onChange={(e) => setTelefono(e.target.value)}
-            style={inputStyle}
-          />
-
-          <input
-            className="form-control my-2"
-            placeholder="Dirección"
-            value={direccion}
-            onChange={(e) => setDireccion(e.target.value)}
-            style={inputStyle}
-          />
-
-          <div style={{ display: "flex", justifyContent: "flex-end", gap: 8, marginTop: 12 }}>
-            <button style={cancelBtnStyle} onClick={onClose} disabled={loading}>Cancelar</button>
-            <button style={primaryBtnStyle} onClick={handleSave} disabled={loading}>
-              {loading ? "Creando..." : "Crear"}
-            </button>
-          </div>
+        <div className="d-flex justify-content-end gap-2 mt-3">
+          <button
+            className="btn btn-outline-secondary"
+            onClick={() => onClose && onClose()}
+            disabled={loading}
+          >
+            Cancelar
+          </button>
+          <button
+            className="btn btn-primary"
+            onClick={handleSave}
+            disabled={loading}
+          >
+            {loading ? "Creando..." : "Crear"}
+          </button>
         </div>
       </div>
     </div>
   );
 }
-
-const backdropStyle = {
-  position: "fixed",
-  inset: 0,
-  background: "linear-gradient(180deg, rgba(44,90,160,0.45), rgba(50,95,173,0.45))",
-  display: "flex",
-  alignItems: "center",
-  justifyContent: "center",
-  zIndex: 1200,
-  padding: 20,
-};
-
-const cardStyle = {
-  width: 420,
-  maxWidth: "100%",
-  borderRadius: 12,
-  boxShadow: "0 10px 30px rgba(15,23,42,0.35)",
-  overflow: "hidden",
-  background: "linear-gradient(180deg, #F7F9FB 0%, #F0E5CF 100%)",
-  border: "1px solid rgba(0,0,0,0.06)",
-};
-
-const headerStyle = {
-  display: "flex",
-  alignItems: "center",
-  justifyContent: "center",
-  padding: "14px 18px",
-  background: "linear-gradient(90deg,#2c5aa0,#325fad)",
-};
-
-const titleStyle = {
-  color: "#FFFFFF",
-  fontWeight: 700,
-  fontSize: 16,
-  letterSpacing: 0.3,
-};
-
-const bodyStyle = {
-  padding: 18,
-  background: "transparent",
-};
-
-const inputStyle = {
-  borderRadius: 8,
-  border: "1px solid rgba(75,101,135,0.12)",
-  padding: "10px 12px",
-  outline: "none",
-};
-
-const primaryBtnStyle = {
-  backgroundColor: "#F9C784",
-  border: "none",
-  color: "#4B6587",
-  padding: "8px 14px",
-  borderRadius: 8,
-  fontWeight: 700,
-  cursor: "pointer",
-};
-
-const cancelBtnStyle = {
-  backgroundColor: "transparent",
-  border: "1px solid rgba(75,101,135,0.12)",
-  color: "#21334a",
-  padding: "8px 14px",
-  borderRadius: 8,
-  cursor: "pointer",
-};

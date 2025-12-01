@@ -60,7 +60,14 @@ app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 MIGRATE = Migrate(app, db, compare_type=True)
 db.init_app(app)
 bcrypt.init_app(app)            # <-- NUEVO
-CORS(app)
+FRONTEND_URL = os.getenv("FRONTEND_URL")
+
+CORS(
+    app,
+    resources={r"/api/*": {"origins": FRONTEND_URL}},
+    supports_credentials=True,
+)
+
 jwt = JWTManager(app)
 mail.init_app(app)
 

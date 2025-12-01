@@ -1,12 +1,10 @@
 from flask import Blueprint, request, jsonify
 from ..models import db, Restaurant, Categories
-from flask_cors import CORS
 from api.extensions import  has_value
 
 cat_bp = Blueprint('cat', __name__, url_prefix='/api/restaurant/<int:restaurant_id>')
 
 
-CORS(cat_bp)
 
 @cat_bp.route('/categories', methods=['POST'])
 def create_category(restaurant_id):

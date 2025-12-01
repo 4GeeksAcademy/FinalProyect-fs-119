@@ -39,7 +39,7 @@ export const NavbarUser = () => {
     localStorage.removeItem("token");
     localStorage.removeItem("user");
     localStorage.removeItem("user_id");
-    navigate("/login");
+    navigate("/");
   };
 
   return (
@@ -65,7 +65,7 @@ export const NavbarUser = () => {
       >
         <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
           <img
-            src="/logo.jpg"
+            src="/ElLogoDefinitivo.svg"
             style={{
               height: 44,
               width: 44,
@@ -186,19 +186,6 @@ export const NavbarUser = () => {
                   Ver perfil
                 </Link>
 
-                <Link
-                  to="/settings"
-                  style={{
-                    padding: "12px 16px",
-                    color: "#21334a",
-                    textDecoration: "none",
-                    fontWeight: 700,
-                    borderBottom: "1px solid rgba(0,0,0,0.04)",
-                  }}
-                  onClick={() => setOpen(false)}
-                >
-                  Ajustes
-                </Link>
 
                 <div style={{ height: 1, background: "rgba(0,0,0,0.06)" }} />
 

@@ -1,28 +1,37 @@
 import React from "react";
-import { Card, Button } from "react-bootstrap";
 
-const IngredientList = ({ ingredients, onDelete,onSelect }) => {
+export default function IngredientList({ ingredients = [], onSelectIngredient, onDelete }) {
+  if (!ingredients || ingredients.length === 0) {
+    return <div className="text-muted">No hay ingredientes.</div>;
+  }
+
   return (
-    <div>
-      <div className="row">
-        {ingredients.map((ing) => (
-          <div key={ing.id} className="col-12 col-md-6 col-lg-4 mb-3">
-            <Card
-            className="shadow-sm"
-            style={{ backgroundColor: "#F0E5CF", color: "#4B6587", cursor: "pointer" }}
-            
+    <div className="d-flex flex-column gap-2">
+      {ingredients.map((ing) => (
+        <div
+          key={ing.id || ing._id}
+          className="d-flex justify-content-between align-items-center p-2"
+          style={{ background: "#fff", borderRadius: 8 }}
+        >
+          <div
+            style={{ cursor: onSelectIngredient ? "pointer" : "default" }}
+            onClick={() => onSelectIngredient && onSelectIngredient(ing)}
           >
-              <Card.Body>
-                <Card.Title>{ing.name}</Card.Title>
-                <p>Precio: {ing.price_per_unit} / {ing.unit}</p>
-                <Button variant="danger" onClick={() => onDelete(ing.id)}>Eliminar</Button>
-              </Card.Body>
-            </Card>
+            <div style={{ fontWeight: 600 }}>{ing.name}</div>
+            <div style={{ fontSize: 12, color: "#666" }}>
+              Precio {ing.price_per_unit} / {ing.unit}
+            </div>
           </div>
-        ))}
-      </div>
+          {onDelete && (
+            <button
+              className="btn btn-sm btn-danger"
+              onClick={() => onDelete(ing.id)}
+            >
+              Delete
+            </button>
+          )}
+        </div>
+      ))}
     </div>
   );
-};
-
-export default IngredientList;
+}
