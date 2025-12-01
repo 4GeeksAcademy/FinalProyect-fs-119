@@ -68,12 +68,12 @@ class CategoriesModelView(ModelView):
 
 
 class IngredientsModelView(ModelView):
-    column_list = ['id', 'name', 'restaurant', 'image_url', 'unit', 'price_per_unit', 'is_active']
+    column_list = ['id', 'name', 'allergens', 'restaurant', 'image_url', 'unit', 'price_per_unit', 'is_active']
     column_labels = {'restaurant': 'Restaurant'}
     column_searchable_list = ['name', 'restaurant.name', 'unit']
     column_filters = ['restaurant.name', 'unit', 'is_active']
 
-    form_columns = ['restaurant', 'id_product_api', 'name', 'image_url', 'unit', 'price_per_unit', 'is_active']
+    form_columns = ['restaurant', 'id_product_api', 'name', 'allergens', 'image_url', 'unit', 'price_per_unit', 'is_active']
 
     form_ajax_refs = {
         'restaurant': {

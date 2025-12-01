@@ -15,6 +15,7 @@ import api.routes.cat as api_cat
 import api.routes.ingr as api_ingr
 import api.routes.dish as api_dish
 import api.routes.dising as api_dising
+import api.routes.openfood as api_openfood
 
 from flask_mail import Message
 
@@ -73,6 +74,7 @@ app.register_blueprint(api_cat.cat_bp)
 app.register_blueprint(api_ingr.ingr_bp)
 app.register_blueprint(api_dish.dish_bp)
 app.register_blueprint(api_dising.dising_bp)
+app.register_blueprint(api_openfood.openfood_bp, url_prefix="/api")
 
 @app.errorhandler(APIException)
 def handle_invalid_usage(error):

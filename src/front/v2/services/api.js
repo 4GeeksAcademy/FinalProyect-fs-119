@@ -93,4 +93,13 @@ export const api = {
         body: payload,
       }
     ),
+  
+   // OPENFOOD (externa via tu backend)
+  openFoodSearch: (q) =>
+    apiFetch(`/api/openfood/search?q=${encodeURIComponent(q)}`),
+
+  openFoodByBarcode: (code) =>
+    apiFetch(`/api/openfood/barcode/${encodeURIComponent(code)}`),
+  
+  
 };

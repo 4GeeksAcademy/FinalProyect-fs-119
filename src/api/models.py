@@ -166,6 +166,12 @@ class Ingredients(db.Model):
         )
     name: Mapped[str] = mapped_column(String(120), nullable=False)
     image_url: Mapped[str | None] = mapped_column(String(500), nullable=True)
+    allergens: Mapped[str | None] = mapped_column(
+        String(255),
+        nullable=True,
+        doc="Alérgenos en texto plano, por ejemplo: 'gluten, milk, nuts'"
+    )
+
     unit: Mapped[str] = mapped_column(String(20), nullable=False)
 
     price_per_unit: Mapped[Numeric] = mapped_column(Numeric(10, 2), nullable=False)
@@ -208,7 +214,8 @@ class Ingredients(db.Model):
         return {
             "id": self.id, 
             "restaurant_id": self.restaurant_id, 
-            "name": self.name, 
+            "name": self.name,
+            "allergens": self.allergens, 
             "unit": self.unit, 
             "price_per_unit": float(self.price_per_unit or 0),
             "price_per_base_unit": float(self.price_per_base_unit or 0),
@@ -344,12 +351,15 @@ class DishIngredient(db.Model):
         )
 
     decrease_pct: Mapped[Numeric] = mapped_column(
-        Numeric(5, 4), 
+        Numeric(5, 2), 
         nullable=False, 
         default=0
         )
 
-    unit_price_snapshot: Mapped[Optional[Numeric]] = mapped_column(Numeric(10, 4), nullable=True)
+    unit_price_snapshot: Mapped[Optional[Numeric | None ]] = mapped_column(
+        Numeric(10, 4), 
+        nullable=True
+        )
 
     __table_args__ = ( 
         CheckConstraint("gross_weight >= 0", name="ck_di_weight_nonnegative"),

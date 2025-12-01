@@ -30,12 +30,45 @@ def _parse_price(ppu):
         val = Decimal(str(ppu))
 
     except (InvalidOperation, TypeError):
-        return ValueError("El campo 'price_per_unit' debe ser numérico")
+        raise ValueError("El campo 'price_per_unit' debe ser numérico")
     
     if val < 0:
-        return ValueError("El campo 'price_per_unit' debe ser positivo")
+        raise ValueError("El campo 'price_per_unit' debe ser positivo")
     
     return val.quantize(Decimal("0.0001"))
+
+
+
+def _parse_allergens_text(value):
+    """
+    Acepta:
+      - ["gluten","milk"]
+      - "gluten, milk"
+    Devuelve:
+      - "gluten, milk" (string) o None
+    """
+    if value is None:
+        return None
+
+    if isinstance(value, list):
+        items = [str(v).strip() for v in value if str(v).strip()]
+    elif isinstance(value, str):
+        items = [p.strip() for p in value.split(",") if p.strip()]
+    else:
+        return None
+
+    seen = set()
+    clean = []
+    for it in items:
+        it = it.replace("-", " ").strip()
+        key = it.lower()
+        if key and key not in seen:
+            seen.add(key)
+            clean.append(it)
+
+    return ", ".join(clean) if clean else None
+
+
 
 @ingr_bp.route('/ingredients', methods=['POST'])
 def add_ingredient(restaurant_id):
@@ -102,6 +135,11 @@ def add_ingredient(restaurant_id):
             return jsonify({
                 'msg': f'El "id_product_api" "{id_product_api}" ya esta asociado a otro ingrediente'
             }), 400
+    
+    allergens_text = _parse_allergens_text(body.get("allergens"))
+    if allergens_text is None:
+        allergens_text = _parse_allergens_text(body.get("allergen_tags"))
+
         
     new_ingredient = Ingredients(
         restaurant_id = restaurant_id,
@@ -110,8 +148,10 @@ def add_ingredient(restaurant_id):
         unit = unit_norm,
         price_per_unit = price_per_unit,
         is_active = True,
-        id_product_api = id_product_api
+        id_product_api = id_product_api,
+        allergens = allergens_text
     )
+
 
     db.session.add(new_ingredient)
     db.session.commit()
@@ -208,6 +248,14 @@ def update_ingredient(restaurant_id, ingredient_id):
             ingredient.name = new_name
             updated = True
 
+    if "allergens" in body or "allergen_tags" in body:
+        allergens_text = _parse_allergens_text(body.get("allergens"))
+        if allergens_text is None:
+            allergens_text = _parse_allergens_text(body.get("allergen_tags"))
+        ingredient.allergens = allergens_text
+        updated = True
+
+
     if 'image_url' in body:
 
         val = body.get('image_url')
@@ -269,7 +317,7 @@ def update_ingredient(restaurant_id, ingredient_id):
                 updated = True
 
     if not updated:
-        return jsonify({'msg': 'No se actualizaron todos los campos'}), 400
+        return jsonify({'msg': 'No se actualizaron los campos'}), 400
 
     db.session.commit()
     

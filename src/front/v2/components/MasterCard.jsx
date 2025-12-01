@@ -2,10 +2,25 @@
 import React, { useState, useEffect } from "react";
 import "./mastercard.css";
 import { api } from "../services/api";
+import { apiFetch } from "../services/apiClient";
 
 import CategoryList from "../../pages/CategoryList";
-import IngredientList from "../../pages/IngredientList";
 import DishList from "../../components/DishList";
+
+// Avatar helper reutilizado del viejo Profile
+function getAvatarFromText(text) {
+  if (!text || !text.trim()) return "https://avatar.iran.liara.run/public/boy";
+  return `https://avatar.iran.liara.run/username?username=${encodeURIComponent(
+    text.trim()
+  )}`;
+}
+
+// Pequeño helper: abrir dirección en Google Maps sin usar APIs
+function openInMaps(address) {
+  if (!address) return;
+  const url = `https://www.google.com/maps?q=${encodeURIComponent(address)}`;
+  window.open(url, "_blank", "noopener,noreferrer");
+}
 
 const NAV = [
   { key: "dashboard", label: "Dashboard" },
@@ -62,7 +77,7 @@ function Table({ title, columns, rows, footer, actions }) {
 }
 
 export default function MasterCard({ store, dispatch }) {
-  // --- modos de vista secundarios ---
+  // --- modos secundarios ---
   const [catMode, setCatMode] = useState("list"); // list | create
   const [ingMode, setIngMode] = useState("list"); // list | create
 
@@ -76,7 +91,90 @@ export default function MasterCard({ store, dispatch }) {
     unit: "g",
     price_per_unit: "",
     image_url: "",
+    allergens: "", // 👈 NUEVO (va a Ingredients.allergens)
+    barcode: "", // 👈 NUEVO (solo para consultar OpenFood, NO se guarda)
   });
+
+  // --- OpenFood (API externa vía backend) ---
+  const [ofQuery, setOfQuery] = useState("");
+  const [ofResults, setOfResults] = useState([]);
+  const [ofLoading, setOfLoading] = useState(false);
+  const [ofError, setOfError] = useState("");
+
+  const normalizeAllergensText = (value) => {
+    if (!value) return "";
+    const items = Array.isArray(value)
+      ? value
+      : String(value)
+          .split(",")
+          .map((x) => x.trim())
+          .filter(Boolean);
+
+    const seen = new Set();
+    const out = [];
+    for (const it0 of items) {
+      const it = String(it0).replace("-", " ").trim();
+      const key = it.toLowerCase();
+      if (!key || seen.has(key)) continue;
+      seen.add(key);
+      out.push(it);
+    }
+    return out.join(", ");
+  };
+
+  const fillFromOpenFood = (p) => {
+    const name = p?.name || "";
+    const code = p?.code || "";
+    const labels = Array.isArray(p?.allergen_labels) ? p.allergen_labels : [];
+    const allergens = normalizeAllergensText(labels);
+
+    setIngForm((prev) => ({
+      ...prev,
+      name: prev.name || name,
+      allergens,
+      barcode: prev.barcode || code,
+    }));
+  };
+
+  const runOpenFoodSearch = async () => {
+    const q = (ofQuery || "").trim();
+    if (!q) return;
+
+    setOfError("");
+    setOfLoading(true);
+    try {
+      const data = await apiFetch(
+        `/api/openfood/search?q=${encodeURIComponent(q)}`,
+        { method: "GET" }
+      );
+      setOfResults(Array.isArray(data?.results) ? data.results : []);
+    } catch (err) {
+      setOfError(err.message || "Error buscando en OpenFoodFacts");
+      setOfResults([]);
+    } finally {
+      setOfLoading(false);
+    }
+  };
+
+  const runOpenFoodByBarcode = async () => {
+    const code = (ingForm.barcode || "").trim();
+    if (!code) return;
+
+    setOfError("");
+    setOfLoading(true);
+    try {
+      const data = await apiFetch(
+        `/api/openfood/barcode/${encodeURIComponent(code)}`,
+        { method: "GET" }
+      );
+      if (data?.product) fillFromOpenFood(data.product);
+      else throw new Error("Producto no encontrado");
+    } catch (err) {
+      setOfError(err.message || "Error consultando por barcode");
+    } finally {
+      setOfLoading(false);
+    }
+  };
 
   // --- estado global / store ---
   const view = store.currentView || "restaurants";
@@ -97,7 +195,7 @@ export default function MasterCard({ store, dispatch }) {
   };
 
   // ---------- ESTADO LOCAL PARA PLATOS ----------
-  const [dishMode, setDishMode] = useState("list"); // "list" | "create"
+  const [dishMode, setDishMode] = useState("list"); // "list" | "create" | "detail"
   const [dishForm, setDishForm] = useState({
     name: "",
     category_id: "",
@@ -106,14 +204,112 @@ export default function MasterCard({ store, dispatch }) {
   const [dishError, setDishError] = useState("");
   const [dishLoading, setDishLoading] = useState(false);
   const [dishLines, setDishLines] = useState([]);
+
+  // Detalle de plato
+  const [dishDetail, setDishDetail] = useState(null);
+  const [detailError, setDetailError] = useState("");
+  const [detailLoading, setDetailLoading] = useState(false);
+
+  // mini-form para añadir ingrediente en detalle
+  const [newLine, setNewLine] = useState({
+    ingredient_id: "",
+    gross_weight: "",
+    decrease_pct: "0",
+  });
+  const [lineLoading, setLineLoading] = useState(false);
+  const [lineError, setLineError] = useState("");
+
+  // ---------- ESTADO LOCAL PARA PROFILE / RESTAURANTES ----------
+  const [profileName, setProfileName] = useState("");
+  const [email, setEmail] = useState("");
+  const [telefono, setTelefono] = useState("");
+  const [direccion, setDireccion] = useState("");
+  const [isEditingProfile, setIsEditingProfile] = useState(false);
+  const [profileLoading, setProfileLoading] = useState(false);
+  const [profileMsg, setProfileMsg] = useState("");
+  const [profileError, setProfileError] = useState("");
+
+  const [showCreateRest, setShowCreateRest] = useState(false);
+  const [restForm, setRestForm] = useState({
+    name: "",
+    telefono: "",
+    direccion: "",
+  });
+  const [restLoading, setRestLoading] = useState(false);
+  const [restError, setRestError] = useState("");
+
   // -------------------------------------------
 
+  const resetDishForm = () => {
+    setDishForm({
+      name: "",
+      category_id: "",
+      description: "",
+    });
+    setDishLines([]);
+  };
+
+  const handleDishFieldChange = (field, value) => {
+    setDishForm((prev) => ({ ...prev, [field]: value }));
+  };
+
+  const addDishLine = () => {
+    if (!ingredients.length) return alert("Primero crea ingredientes.");
+    setDishLines((prev) => [
+      ...prev,
+      {
+        id:
+          typeof crypto !== "undefined" && crypto.randomUUID
+            ? crypto.randomUUID()
+            : Date.now() + Math.random(),
+        ingredient_id: "",
+        gross_weight: "",
+        decrease_pct: "0",
+      },
+    ]);
+  };
+
+  const removeDishLine = (id) => {
+    setDishLines((prev) => prev.filter((l) => l.id !== id));
+  };
+
+  const updateDishLine = (id, patch) => {
+    setDishLines((prev) =>
+      prev.map((l) => (l.id === id ? { ...l, ...patch } : l))
+    );
+  };
+
+  // 🔧 helper fino: actualizar solo un plato en el store
+  const patchDishInStore = (updatedDish) => {
+    if (!updatedDish || !updatedDish.id) return;
+    dispatch({
+      type: "set_dishes",
+      payload: (store.dishes || []).map((d) =>
+        d.id === updatedDish.id ? { ...d, ...updatedDish } : d
+      ),
+    });
+  };
+
   // Helpers dashboard
-  const topDishesRows = dishes.slice(0, 5).map((d) => [d.name || `Dish #${d.id}`, "—"]);
-  const alertsRows = ingredients
-    .filter((i) => i.price_per_unit == null || Number(i.price_per_unit) === 0)
+  const topDishesRows = dishes
     .slice(0, 5)
-    .map((i) => [i.name || `Ingredient #${i.id}`, "No Cost"]);
+    .map((d) => [d.name || `Dish #${d.id}`, "—"]);
+
+  // Alerts: sin precio + sin alérgenos (mínimo, sin cambiar la tabla)
+  const alertsNoCost = ingredients
+    .filter((i) => i.price_per_unit == null || Number(i.price_per_unit) === 0)
+    .map((i) => ({ name: i.name || `Ingredient #${i.id}`, status: "No Cost" }));
+
+  const alertsNoAllergens = ingredients
+    .filter((i) => !i.allergens || !String(i.allergens).trim())
+    .map((i) => ({
+      name: i.name || `Ingredient #${i.id}`,
+      status: "No Allergens",
+    }));
+
+  const alertsRows = [...alertsNoCost, ...alertsNoAllergens]
+    .slice(0, 5)
+    .map((a) => [a.name, a.status]);
 
   // Cuando entro en Dishes y tengo restaurante, cargo lista de platos
   useEffect(() => {
@@ -127,32 +323,194 @@ export default function MasterCard({ store, dispatch }) {
         console.error("Error cargando platos:", err);
         dispatch({
           type: "set_error",
-          payload: { dishes: err.message || "No se pudieron cargar los platos" },
+          payload: {
+            dishes: err.message || "No se pudieron cargar los platos",
+          },
         });
       }
     })();
   }, [view, currentRestaurant?.id, dispatch]);
 
-  // Si salgo de Dishes, reseteo modo/errores y formulario
-  const resetDishLines = () => setDishLines([]);
-
-  const resetDishForm = () => {
-    setDishForm({
-      name: "",
-      category_id: "",
-      description: "",
-    });
-    resetDishLines();
-  };
-
+  // Si salgo de Dishes, reseteo modo/errores
   useEffect(() => {
     if (view !== "dishes") {
       setDishMode("list");
       setDishError("");
+      setDetailError("");
       setDishLoading(false);
-      resetDishForm();
+      setDetailLoading(false);
+      setDishLines([]);
+      setDishDetail(null);
+      setNewLine({ ingredient_id: "", gross_weight: "", decrease_pct: "0" });
+      setLineError("");
+      setLineLoading(false);
     }
   }, [view]);
+
+  // Si salgo de Ingredients, limpio estado OpenFood (para no arrastrar búsquedas)
+  useEffect(() => {
+    if (view !== "ingredients") {
+      setOfQuery("");
+      setOfResults([]);
+      setOfError("");
+      setOfLoading(false);
+    }
+  }, [view]);
+
+  // Si salgo de profile/restaurants, cierro el form de restaurante
+  useEffect(() => {
+    if (view !== "profile" && view !== "restaurants") {
+      setShowCreateRest(false);
+      setRestError("");
+    }
+  }, [view]);
+
+  // --- PROFILE: cargar datos de usuario ---
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    const uid = localStorage.getItem("user_id");
+    if (!uid) return;
+
+    let ignore = false;
+
+    (async () => {
+      setProfileError("");
+      setProfileMsg("");
+      setProfileLoading(true);
+      try {
+        const data = await api.profile(uid);
+        const u = data?.user || data?.usuario || data;
+        if (!u || ignore) return;
+
+        setProfileName(u.name || "");
+        setEmail(u.email || "");
+        setTelefono(u.telefono || "");
+        setDireccion(u.direccion || "");
+      } catch (err) {
+        if (!ignore) {
+          console.error(err);
+          setProfileError(
+            err.message || "No se pudo cargar la información de perfil"
+          );
+        }
+      } finally {
+        if (!ignore) setProfileLoading(false);
+      }
+    })();
+
+    return () => {
+      ignore = true;
+    };
+  }, []);
+
+  // --- PROFILE/RESTAURANTS: cargar restaurantes si aún no están en store ---
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    const uid = localStorage.getItem("user_id");
+    if (!uid) return;
+    if (restaurants && restaurants.length) return;
+
+    let ignore = false;
+    (async () => {
+      try {
+        const data = await api.getRestaurants(uid);
+        if (ignore) return;
+        const list = Array.isArray(data?.restaurants)
+          ? data.restaurants
+          : Array.isArray(data)
+          ? data
+          : [];
+        dispatch({ type: "set_restaurants", payload: list });
+      } catch (err) {
+        if (!ignore) console.error("Error cargando restaurantes:", err);
+      }
+    })();
+
+    return () => {
+      ignore = true;
+    };
+  }, [restaurants?.length, dispatch]);
+
+  const handleProfileSubmit = async (e) => {
+    e.preventDefault();
+    if (typeof window === "undefined") return;
+    const uid = localStorage.getItem("user_id");
+    if (!uid) return;
+
+    setProfileMsg("");
+    setProfileError("");
+
+    const payload = {
+      name: profileName.trim(),
+      email: email.trim(),
+      telefono: telefono.trim() || null,
+      direccion: direccion.trim() || null,
+    };
+
+    if (!payload.name || !payload.email) {
+      setProfileError("Nombre y correo son obligatorios.");
+      return;
+    }
+
+    try {
+      setProfileLoading(true);
+      const data = await apiFetch(`/api/user/update/${uid}`, {
+        method: "PUT",
+        body: payload,
+      });
+      setProfileMsg(data.msg || "Perfil actualizado");
+      setIsEditingProfile(false);
+    } catch (err) {
+      console.error(err);
+      setProfileError(err.message || "No se pudo actualizar el perfil");
+    } finally {
+      setProfileLoading(false);
+    }
+  };
+
+  const handleRestFormChange = (field, value) => {
+    setRestForm((prev) => ({ ...prev, [field]: value }));
+  };
+
+  const handleCreateRestaurantFromProfile = async (e) => {
+    e.preventDefault();
+    if (typeof window === "undefined") return;
+    const uid = localStorage.getItem("user_id");
+    if (!uid) return;
+
+    setRestError("");
+    const payload = {
+      name: restForm.name.trim(),
+      telefono: restForm.telefono.trim() || null,
+      direccion: restForm.direccion.trim() || null,
+    };
+
+    if (!payload.name) {
+      setRestError("El nombre del restaurante es obligatorio.");
+      return;
+    }
+
+    try {
+      setRestLoading(true);
+      const data = await api.createRestaurant(uid, payload);
+      const created =
+        data?.restaurant || data?.restaurante || data?.rest || data;
+
+      if (created) {
+        const updated = [...(store.restaurants || []), created];
+        dispatch({ type: "set_restaurants", payload: updated });
+        dispatch({ type: "set_currentRestaurant", payload: created });
+        setShowCreateRest(false);
+        setRestForm({ name: "", telefono: "", direccion: "" });
+        setView("dashboard");
+      }
+    } catch (err) {
+      console.error(err);
+      setRestError(err.message || "No se pudo crear el restaurante");
+    } finally {
+      setRestLoading(false);
+    }
+  };
 
   // --- CATEGORIES HANDLERS (MVP) ---
   const handleCreateCategory = async (e) => {
@@ -220,6 +578,7 @@ export default function MasterCard({ store, dispatch }) {
       price_per_unit:
         ingForm.price_per_unit !== "" ? Number(ingForm.price_per_unit) : 0,
       image_url: ingForm.image_url.trim() || null,
+      allergens: ingForm.allergens.trim() || null, // 👈 NUEVO
     };
 
     try {
@@ -238,6 +597,8 @@ export default function MasterCard({ store, dispatch }) {
         unit: "g",
         price_per_unit: "",
         image_url: "",
+        allergens: "",
+        barcode: "",
       });
       setIngMode("list");
     } catch (err) {
@@ -265,33 +626,7 @@ export default function MasterCard({ store, dispatch }) {
     }
   };
 
-  // --- DISHES HANDLERS (MVP) ---
-  const handleDishFieldChange = (field, value) => {
-    setDishForm((prev) => ({ ...prev, [field]: value }));
-  };
-
-  const addDishLine = () => {
-    setDishLines((prev) => [
-      ...prev,
-      {
-        tmpId: Date.now() + Math.random(),
-        ingredient_id: "",
-        gross_weight: "",
-        decrease_pct: "",
-      },
-    ]);
-  };
-
-  const updateDishLine = (tmpId, patch) => {
-    setDishLines((prev) =>
-      prev.map((l) => (l.tmpId === tmpId ? { ...l, ...patch } : l))
-    );
-  };
-
-  const removeDishLine = (tmpId) => {
-    setDishLines((prev) => prev.filter((l) => l.tmpId !== tmpId));
-  };
-
+  // --- DISHES HANDLERS ---
   const handleDishSubmit = async (e) => {
     e.preventDefault();
     if (!currentRestaurant?.id) return;
@@ -303,7 +638,6 @@ export default function MasterCard({ store, dispatch }) {
       name: dishForm.name.trim(),
       category_id: dishForm.category_id ? Number(dishForm.category_id) : null,
       description: dishForm.description.trim() || null,
-      // cost_price e image_url NO se envían: las calcula/gestionará el back
     };
 
     if (!payload.name) {
@@ -312,49 +646,43 @@ export default function MasterCard({ store, dispatch }) {
       return;
     }
 
-    // Líneas activas: las que tienen ingrediente y cantidad
-    const activeLines = (dishLines || []).filter(
-      (l) => l.ingredient_id && l.gross_weight !== ""
-    );
+    const validLines = dishLines.filter((l) => {
+      if (!l.ingredient_id) return false;
+      if (l.gross_weight === "" || isNaN(Number(l.gross_weight))) return false;
+      return true;
+    });
 
     try {
-      // 1) Crear plato
+      // 1) crear plato
       const data = await api.createDish(currentRestaurant.id, payload);
       const created = data?.dish;
-      if (!created || !created.id) {
-        throw new Error("No se pudo crear el plato en el servidor");
-      }
+      if (!created) throw new Error("No se devolvió el plato creado.");
+
       const dishId = created.id;
 
-      // 2) Crear líneas de DishIngredient
-      for (const line of activeLines) {
-        const linePayload = {
-          ingredient_id: Number(line.ingredient_id),
-          gross_weight: Number(line.gross_weight),
-          decrease_pct:
-            line.decrease_pct !== "" ? Number(line.decrease_pct) : 0,
-        };
-
-        await api.addDishIngredient(
-          currentRestaurant.id,
-          dishId,
-          linePayload
+      // 2) crear líneas
+      if (validLines.length) {
+        await Promise.all(
+          validLines.map((l) =>
+            api.addDishIngredient(currentRestaurant.id, dishId, {
+              ingredient_id: Number(l.ingredient_id),
+              gross_weight: Number(l.gross_weight),
+              decrease_pct:
+                l.decrease_pct !== "" && !isNaN(Number(l.decrease_pct))
+                  ? Number(l.decrease_pct)
+                  : 0,
+            })
+          )
         );
       }
 
-      // 3) Refrescar plato desde el backend (para traer coste calculado)
-      let finalDish = created;
-      try {
-        const refreshed = await api.getDish(currentRestaurant.id, dishId);
-        if (refreshed?.dish) finalDish = refreshed.dish;
-      } catch (innerErr) {
-        console.warn("No se pudo refrescar el plato, se usa el creado:", innerErr);
-      }
+      // 3) refrescar lista de platos
+      const listData = await api.getDishes(currentRestaurant.id);
+      dispatch({
+        type: "set_dishes",
+        payload: listData.dishes || [],
+      });
 
-      // 4) Actualizar store
-      dispatch({ type: "add_dish", payload: finalDish });
-
-      // 5) Limpiar
       resetDishForm();
       setDishMode("list");
     } catch (err) {
@@ -375,10 +703,128 @@ export default function MasterCard({ store, dispatch }) {
     }
   };
 
-  const handleViewDish = (dish) => {
-    // MVP: de momento solo mostramos algo simple; luego esto será /app/dishes/:id
-    alert(`Plato: ${dish.name}\nCoste: ${dish.cost_price ?? dish.total_cost ?? 0}`);
+  const loadDishDetail = async (dishId) => {
+    if (!currentRestaurant?.id) return;
+    setDetailError("");
+    setDetailLoading(true);
+    try {
+      const data = await api.getDish(currentRestaurant.id, dishId);
+      const detail = data?.dish || data;
+      setDishDetail(detail || null);
+
+      // sincronizar lista con el detalle
+      if (detail && detail.id) {
+        patchDishInStore(detail);
+      }
+    } catch (err) {
+      console.error(err);
+      setDetailError(err.message || "No se pudo cargar el detalle del plato");
+    } finally {
+      setDetailLoading(false);
+    }
   };
+
+  const handleViewDish = async (dish) => {
+    setDishMode("detail");
+    setDishDetail(null);
+    await loadDishDetail(dish.id);
+  };
+
+  const handleNewLineChange = (field, value) => {
+    setNewLine((prev) => ({ ...prev, [field]: value }));
+  };
+
+  const handleAddLineToDish = async (e) => {
+    e.preventDefault();
+    if (!currentRestaurant?.id || !dishDetail?.id) return;
+
+    setLineError("");
+    const ingredient_id = newLine.ingredient_id
+      ? Number(newLine.ingredient_id)
+      : null;
+    const gross_weight =
+      newLine.gross_weight !== "" ? Number(newLine.gross_weight) : NaN;
+    const decrease_pct =
+      newLine.decrease_pct !== "" ? Number(newLine.decrease_pct) : 0;
+
+    if (!ingredient_id) {
+      setLineError("Selecciona un ingrediente.");
+      return;
+    }
+    if (isNaN(gross_weight) || gross_weight <= 0) {
+      setLineError("La cantidad debe ser un número mayor que 0.");
+      return;
+    }
+
+    try {
+      setLineLoading(true);
+      await api.addDishIngredient(currentRestaurant.id, dishDetail.id, {
+        ingredient_id,
+        gross_weight,
+        decrease_pct: isNaN(decrease_pct) ? 0 : decrease_pct,
+      });
+
+      // recargar detalle (que también sincroniza la lista)
+      await loadDishDetail(dishDetail.id);
+
+      // reset mini-form
+      setNewLine({
+        ingredient_id: "",
+        gross_weight: "",
+        decrease_pct: "0",
+      });
+    } catch (err) {
+      console.error(err);
+      setLineError(err.message || "No se pudo añadir el ingrediente");
+    } finally {
+      setLineLoading(false);
+    }
+  };
+
+  // Helpers detalle
+  const detailLines =
+    dishDetail?.lines ||
+    dishDetail?.dish_ingredients ||
+    dishDetail?.ingredients ||
+    [];
+
+  const findCategoryName = (category_id) => {
+    if (!category_id) return null;
+    const cat = categories.find((c) => c.id === category_id);
+    return cat ? cat.name : null;
+  };
+
+  const currentDishCost = dishDetail?.total_cost ?? dishDetail?.cost_price ?? 0;
+
+  // 👇 NUEVO: alérgenos agregados del plato (desde líneas -> ingrediente -> allergens)
+  const computeDishAllergens = () => {
+    const byId = new Map((ingredients || []).map((i) => [String(i.id), i]));
+    const set = new Set();
+    let missing = 0;
+
+    for (const line of detailLines || []) {
+      const ing =
+        line?.ingredient ||
+        line?.ingredient_data ||
+        byId.get(String(line?.ingredient_id)) ||
+        null;
+
+      const text = (ing?.allergens || "").trim();
+      if (!text) {
+        missing++;
+        continue;
+      }
+      text
+        .split(",")
+        .map((x) => x.trim())
+        .filter(Boolean)
+        .forEach((a) => set.add(a.toLowerCase()));
+    }
+
+    return { list: Array.from(set).sort(), missing };
+  };
+
+  const dishAllergens = computeDishAllergens();
 
   return (
     <div className="mc-wrap">
@@ -438,10 +884,7 @@ export default function MasterCard({ store, dispatch }) {
 
             {/* CTA contextual por vista */}
             {view === "ingredients" && ingMode === "list" && (
-              <button
-                className="mc-cta"
-                onClick={() => setIngMode("create")}
-              >
+              <button className="mc-cta" onClick={() => setIngMode("create")}>
                 New Ingredient
               </button>
             )}
@@ -455,10 +898,7 @@ export default function MasterCard({ store, dispatch }) {
             )}
 
             {view === "categories" && catMode === "list" && (
-              <button
-                className="mc-cta"
-                onClick={() => setCatMode("create")}
-              >
+              <button className="mc-cta" onClick={() => setCatMode("create")}>
                 New Category
               </button>
             )}
@@ -493,6 +933,11 @@ export default function MasterCard({ store, dispatch }) {
                   title="Ingredient Alerts"
                   columns={["Ingredient", "Status"]}
                   rows={alertsRows}
+                  footer={
+                    <div className="mc-muted">
+                      Tip: completa alérgenos al crear el ingrediente (OpenFood)
+                    </div>
+                  }
                 />
               </div>
             </>
@@ -503,7 +948,82 @@ export default function MasterCard({ store, dispatch }) {
             <section className="mc-panel">
               <div className="mc-panel-head">
                 <h3>Your restaurants</h3>
+                {!showCreateRest && (
+                  <button
+                    type="button"
+                    className="mc-cta"
+                    onClick={() => setShowCreateRest(true)}
+                  >
+                    New restaurant
+                  </button>
+                )}
+                {showCreateRest && (
+                  <button
+                    type="button"
+                    className="mc-cta mc-cta-secondary"
+                    onClick={() => {
+                      setShowCreateRest(false);
+                      setRestError("");
+                    }}
+                  >
+                    Cancel
+                  </button>
+                )}
               </div>
+
+              {restError && <div className="mc-error mb-2">{restError}</div>}
+
+              {showCreateRest && (
+                <form
+                  className="mc-form"
+                  onSubmit={handleCreateRestaurantFromProfile}
+                  style={{ maxWidth: 480, marginBottom: "2rem" }}
+                >
+                  <label className="mc-field">
+                    <span>Nombre del restaurante *</span>
+                    <input
+                      className="mc-input"
+                      value={restForm.name}
+                      onChange={(e) =>
+                        handleRestFormChange("name", e.target.value)
+                      }
+                      required
+                    />
+                  </label>
+
+                  <label className="mc-field">
+                    <span>Teléfono (opcional)</span>
+                    <input
+                      className="mc-input"
+                      value={restForm.telefono}
+                      onChange={(e) =>
+                        handleRestFormChange("telefono", e.target.value)
+                      }
+                    />
+                  </label>
+
+                  <label className="mc-field">
+                    <span>Dirección (opcional)</span>
+                    <input
+                      className="mc-input"
+                      value={restForm.direccion}
+                      onChange={(e) =>
+                        handleRestFormChange("direccion", e.target.value)
+                      }
+                    />
+                  </label>
+
+                  <div className="mc-form-actions">
+                    <button
+                      type="submit"
+                      className="mc-cta"
+                      disabled={restLoading}
+                    >
+                      {restLoading ? "Creando..." : "Crear y abrir en dashboard"}
+                    </button>
+                  </div>
+                </form>
+              )}
 
               {store.loading.restaurants && (
                 <div className="mc-empty">Loading…</div>
@@ -528,18 +1048,25 @@ export default function MasterCard({ store, dispatch }) {
                       </div>
                       {r.direccion && (
                         <div className="mc-card-sub mc-card-sub--muted">
-                          {r.direccion}
+                          <span
+                            className="mc-link"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              openInMaps(r.direccion);
+                            }}
+                          >
+                            {r.direccion}
+                          </span>
                         </div>
                       )}
                     </div>
                   </button>
                 ))}
-                {!restaurants.length &&
-                  !store.loading.restaurants && (
-                    <div className="mc-empty">
-                      Create your first restaurant to start.
-                    </div>
-                  )}
+                {!restaurants.length && !store.loading.restaurants && (
+                  <div className="mc-empty">
+                    Create your first restaurant to start.
+                  </div>
+                )}
               </div>
             </section>
           )}
@@ -632,6 +1159,12 @@ export default function MasterCard({ store, dispatch }) {
                           ])
                         : []
                     }
+                    footer={
+                      <div className="mc-muted">
+                        Consejo: si falta “No Allergens”, edítalo recreándolo por
+                        ahora (MVP). Luego metemos un PUT.
+                      </div>
+                    }
                   />
                 </>
               )}
@@ -643,6 +1176,117 @@ export default function MasterCard({ store, dispatch }) {
                   style={{ maxWidth: 500 }}
                 >
                   <h3 className="mc-form-title">New Ingredient</h3>
+
+                  {/* OpenFood helper (mínimo) */}
+                  <div className="mc-panel" style={{ padding: "12px" }}>
+                    <div
+                      className="mc-panel-head"
+                      style={{ padding: 0, marginBottom: 8 }}
+                    >
+                      <h3 style={{ margin: 0, fontSize: 14 }}>
+                        Buscar alérgenos (OpenFoodFacts)
+                      </h3>
+                      <div className="mc-muted" style={{ fontSize: 12 }}>
+                        Usa botón (evita rate limit).
+                      </div>
+                    </div>
+
+                    <div className="mc-field-grid">
+                      <label className="mc-field">
+                        <span>Buscar por nombre</span>
+                        <input
+                          type="text"
+                          value={ofQuery}
+                          onChange={(e) => setOfQuery(e.target.value)}
+                          placeholder="leche, galletas…"
+                        />
+                      </label>
+
+                      <div className="d-flex align-items-end">
+                        <button
+                          type="button"
+                          className="mc-cta mc-cta-secondary"
+                          onClick={runOpenFoodSearch}
+                          disabled={ofLoading || !(ofQuery || "").trim()}
+                        >
+                          {ofLoading ? "Buscando..." : "Buscar"}
+                        </button>
+                      </div>
+                    </div>
+
+                    <div className="mc-field-grid" style={{ marginTop: 8 }}>
+                      <label className="mc-field">
+                        <span>Código de barras</span>
+                        <input
+                          name="barcode"
+                          type="text"
+                          value={ingForm.barcode}
+                          onChange={handleChangeIng}
+                          placeholder="841..."
+                        />
+                      </label>
+
+                      <div className="d-flex align-items-end">
+                        <button
+                          type="button"
+                          className="mc-cta mc-cta-secondary"
+                          onClick={runOpenFoodByBarcode}
+                          disabled={ofLoading || !(ingForm.barcode || "").trim()}
+                        >
+                          {ofLoading ? "Consultando..." : "Consultar"}
+                        </button>
+                      </div>
+                    </div>
+
+                    {ofError && (
+                      <div className="mc-error" style={{ marginTop: 8 }}>
+                        {ofError}
+                      </div>
+                    )}
+
+                    {ofResults.length > 0 && (
+                      <div style={{ marginTop: 10 }}>
+                        <div className="mc-muted" style={{ fontSize: 12 }}>
+                          Selecciona un producto:
+                        </div>
+
+                        <div className="mc-table" style={{ marginTop: 6 }}>
+                          <div className="mc-tr mc-th">
+                            <div className="mc-td">Producto</div>
+                            <div className="mc-td">Alérgenos</div>
+                            <div className="mc-td">Acción</div>
+                          </div>
+
+                          {ofResults.slice(0, 6).map((r) => (
+                            <div key={r.code || r.name} className="mc-tr">
+                              <div className="mc-td">
+                                {r.name || "Sin nombre"}
+                                {r.brand ? (
+                                  <div className="mc-muted" style={{ fontSize: 12 }}>
+                                    {r.brand}
+                                  </div>
+                                ) : null}
+                              </div>
+                              <div className="mc-td">
+                                {(r.allergen_labels || []).join(", ") || (
+                                  <span className="mc-muted">Sin datos</span>
+                                )}
+                              </div>
+                              <div className="mc-td">
+                                <button
+                                  type="button"
+                                  className="mc-cta mc-cta-small"
+                                  onClick={() => fillFromOpenFood(r)}
+                                >
+                                  Usar
+                                </button>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+                  </div>
 
                   <label className="mc-field">
                     <span>Name</span>
@@ -693,6 +1337,18 @@ export default function MasterCard({ store, dispatch }) {
                     />
                   </label>
 
+                  {/* NUEVO: alérgenos persistidos en tu modelo */}
+                  <label className="mc-field">
+                    <span>Allergens (opcional)</span>
+                    <input
+                      name="allergens"
+                      type="text"
+                      value={ingForm.allergens}
+                      onChange={handleChangeIng}
+                      placeholder="gluten, milk, nuts"
+                    />
+                  </label>
+
                   <div className="mc-form-actions">
                     <button
                       type="button"
@@ -714,33 +1370,20 @@ export default function MasterCard({ store, dispatch }) {
           {view === "dishes" && (
             <section className="mc-panel">
               <div className="mc-panel-head">
-                {dishMode === "list" ? (
+                {dishMode === "list" && (
                   <>
                     <h3>Platos</h3>
                     <button
                       className="mc-cta"
-                      onClick={() => {
-                        setDishMode("create");
-                        setDishError("");
-                        setDishLines((prev) =>
-                          prev.length
-                            ? prev
-                            : [
-                                {
-                                  tmpId: Date.now() + Math.random(),
-                                  ingredient_id: "",
-                                  gross_weight: "",
-                                  decrease_pct: "",
-                                },
-                              ]
-                        );
-                      }}
+                      onClick={() => setDishMode("create")}
                       disabled={!currentRestaurant?.id}
                     >
                       New dish
                     </button>
                   </>
-                ) : (
+                )}
+
+                {dishMode === "create" && (
                   <>
                     <h3>Nuevo plato</h3>
                     <button
@@ -755,9 +1398,34 @@ export default function MasterCard({ store, dispatch }) {
                     </button>
                   </>
                 )}
+
+                {dishMode === "detail" && (
+                  <>
+                    <h3>
+                      Detalle plato
+                      {dishDetail?.name ? `: ${dishDetail.name}` : ""}
+                    </h3>
+                    <button
+                      type="button"
+                      className="mc-ghost"
+                      onClick={() => {
+                        setDishMode("list");
+                        setDishDetail(null);
+                        setNewLine({
+                          ingredient_id: "",
+                          gross_weight: "",
+                          decrease_pct: "0",
+                        });
+                        setLineError("");
+                      }}
+                    >
+                      ← Volver al listado
+                    </button>
+                  </>
+                )}
               </div>
 
-              {dishMode === "list" ? (
+              {dishMode === "list" && (
                 <>
                   {store.loading.dishes && (
                     <div className="mc-empty">Cargando platos…</div>
@@ -776,16 +1444,18 @@ export default function MasterCard({ store, dispatch }) {
                   {dishes && dishes.length > 0 && (
                     <DishList
                       dishes={dishes}
+                      categories={categories}
                       onDelete={handleDeleteDish}
                       onView={handleViewDish}
                     />
                   )}
                 </>
-              ) : (
+              )}
+
+              {dishMode === "create" && (
                 <form className="mc-form" onSubmit={handleDishSubmit}>
                   {dishError && <div className="mc-error">{dishError}</div>}
 
-                  {/* Nombre */}
                   <div className="mc-form-row">
                     <label>Nombre del plato *</label>
                     <input
@@ -799,7 +1469,6 @@ export default function MasterCard({ store, dispatch }) {
                     />
                   </div>
 
-                  {/* Categoría opcional */}
                   <div className="mc-form-row">
                     <label>Categoría (opcional)</label>
                     <select
@@ -818,7 +1487,6 @@ export default function MasterCard({ store, dispatch }) {
                     </select>
                   </div>
 
-                  {/* Descripción */}
                   <div className="mc-form-row">
                     <label>Descripción (opcional)</label>
                     <textarea
@@ -834,88 +1502,111 @@ export default function MasterCard({ store, dispatch }) {
 
                   <hr />
 
-                  {/* INGREDIENTES DEL PLATO */}
-                  <h4>Ingredientes del plato</h4>
-                  <p className="mc-muted">
-                    Selecciona ingredientes ya creados y define la cantidad
-                    (gross qty) y la merma (%). El coste lo calcula el backend.
-                  </p>
+                  <div className="mc-form-row">
+                    <div className="d-flex justify-content-between align-items-center">
+                      <label>Ingredientes del plato</label>
+                      <button
+                        type="button"
+                        className="mc-cta mc-cta-secondary"
+                        onClick={addDishLine}
+                        disabled={!ingredients.length}
+                      >
+                        + Añadir ingrediente
+                      </button>
+                    </div>
 
-                  <div className="mc-lines">
-                    {dishLines.length === 0 && (
-                      <div className="mc-empty">
-                        Aún no has añadido líneas de ingredientes.
+                    {!ingredients.length && (
+                      <div className="mc-muted small mt-1">
+                        Primero crea ingredientes en la vista Ingredients.
                       </div>
                     )}
 
-                    {dishLines.map((line) => (
-                      <div
-                        key={line.tmpId}
-                        className="mc-line-row"
-                      >
-                        <div className="mc-line-main">
-                          <select
-                            className="mc-input"
-                            value={line.ingredient_id || ""}
-                            onChange={(e) =>
-                              updateDishLine(line.tmpId, {
-                                ingredient_id: e.target.value,
-                              })
-                            }
-                          >
-                            <option value="">Ingrediente…</option>
-                            {ingredients.map((ing) => (
-                              <option key={ing.id} value={ing.id}>
-                                {ing.name} — {ing.price_per_unit} / {ing.unit}
-                              </option>
-                            ))}
-                          </select>
-
-                          <input
-                            className="mc-input"
-                            type="number"
-                            step="0.0001"
-                            placeholder="Cantidad (g/ml/ud)"
-                            value={line.gross_weight}
-                            onChange={(e) =>
-                              updateDishLine(line.tmpId, {
-                                gross_weight: e.target.value,
-                              })
-                            }
-                          />
-
-                          <input
-                            className="mc-input"
-                            type="number"
-                            step="0.01"
-                            placeholder="Merma %"
-                            value={line.decrease_pct}
-                            onChange={(e) =>
-                              updateDishLine(line.tmpId, {
-                                decrease_pct: e.target.value,
-                              })
-                            }
-                          />
-                        </div>
-
-                        <button
-                          type="button"
-                          className="mc-link-danger"
-                          onClick={() => removeDishLine(line.tmpId)}
-                        >
-                          Eliminar
-                        </button>
+                    {dishLines.length === 0 && ingredients.length > 0 && (
+                      <div className="mc-empty">
+                        No has añadido ingredientes aún.
                       </div>
-                    ))}
-                  </div>
+                    )}
 
-                  <button
-                    type="button"
-                    className="mc-ghost"
-                    onClick={addDishLine}
-                  >
-                    + Añadir ingrediente
-                  </button>
+                    {dishLines.length > 0 && (
+                      <div className="mc-di-lines">
+                        {dishLines.map((line) => (
+                          <div
+                            key={line.id}
+                            className="mc-di-line d-flex gap-2 align-items-end mb-2"
+                          >
+                            <div className="flex-grow-1">
+                              <label className="mc-field">
+                                <span>Ingrediente</span>
+                                <select
+                                  className="mc-input"
+                                  value={line.ingredient_id}
+                                  onChange={(e) =>
+                                    updateDishLine(line.id, {
+                                      ingredient_id: e.target.value,
+                                    })
+                                  }
+                                >
+                                  <option value="">Selecciona…</option>
+                                  {ingredients.map((i) => (
+                                    <option key={i.id} value={i.id}>
+                                      {i.name} — {i.price_per_unit} / {i.unit}
+                                    </option>
+                                  ))}
+                                </select>
+                              </label>
+                            </div>
+
+                            <div>
+                              <label className="mc-field">
+                                <span>Cantidad bruta</span>
+                                <input
+                                  className="mc-input"
+                                  type="number"
+                                  min="0"
+                                  step="0.0001"
+                                  value={line.gross_weight}
+                                  onChange={(e) =>
+                                    updateDishLine(line.id, {
+                                      gross_weight: e.target.value,
+                                    })
+                                  }
+                                  placeholder="Ej: 150"
+                                />
+                              </label>
+                            </div>
+
+                            <div>
+                              <label className="mc-field">
+                                <span>Merma %</span>
+                                <input
+                                  className="mc-input"
+                                  type="number"
+                                  min="0"
+                                  max="100"
+                                  step="0.01"
+                                  value={line.decrease_pct}
+                                  onChange={(e) =>
+                                    updateDishLine(line.id, {
+                                      decrease_pct: e.target.value,
+                                    })
+                                  }
+                                  placeholder="0"
+                                />
+                              </label>
+                            </div>
+
+                            <button
+                              type="button"
+                              className="mc-link-danger"
+                              onClick={() => removeDishLine(line.id)}
+                            >
+                              Eliminar
+                            </button>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
 
                   <div className="mc-form-actions">
                     <button
@@ -938,17 +1629,485 @@ export default function MasterCard({ store, dispatch }) {
                   </div>
                 </form>
               )}
+
+              {dishMode === "detail" && (
+                <div className="mc-dish-detail">
+                  {detailLoading && (
+                    <div className="mc-empty">Cargando detalle…</div>
+                  )}
+                  {detailError && <div className="mc-error">{detailError}</div>}
+                  {dishDetail && !detailLoading && (
+                    <>
+                      {/* Parte superior: resumen del plato */}
+                      <div className="mc-dish-header">
+                        <h4>{dishDetail.name}</h4>
+                        <div className="mc-muted">
+                          {findCategoryName(dishDetail.category_id) && (
+                            <span>
+                              Categoría:{" "}
+                              {findCategoryName(dishDetail.category_id)}
+                            </span>
+                          )}
+                        </div>
+                        <div className="mt-2">
+                          <span className="badge bg-secondary">
+                            Coste total: {currentDishCost} €
+                          </span>
+                        </div>
+                        {dishDetail.description && (
+                          <p className="mt-2">{dishDetail.description}</p>
+                        )}
+
+                        {/* NUEVO: alérgenos del plato */}
+                        <div className="mt-3">
+                          <div className="mc-muted" style={{ marginBottom: 6 }}>
+                            Alérgenos del plato:
+                          </div>
+                          {dishAllergens.list.length ? (
+                            <div className="d-flex flex-wrap gap-2">
+                              {dishAllergens.list.map((a) => (
+                                <span key={a} className="badge bg-warning text-dark">
+                                  {a}
+                                </span>
+                              ))}
+                            </div>
+                          ) : (
+                            <div className="mc-muted">
+                              No hay alérgenos registrados (o faltan datos).
+                            </div>
+                          )}
+                          {dishAllergens.missing > 0 && (
+                            <div className="mc-muted" style={{ marginTop: 6 }}>
+                              Nota: {dishAllergens.missing} ingrediente(s) sin
+                              alérgenos en su ficha.
+                            </div>
+                          )}
+                        </div>
+                      </div>
+
+                      <hr />
+
+                      {/* Parte central: ingredientes / líneas */}
+                      <div className="mc-dish-lines">
+                        <h5>Ingredientes del plato</h5>
+
+                        {detailLines.length === 0 && (
+                          <div className="mc-empty">
+                            Este plato todavía no tiene ingredientes asociados.
+                          </div>
+                        )}
+
+                        {detailLines.length > 0 && (
+                          <div className="mc-table">
+                            <div className="mc-tr mc-th">
+                              <div className="mc-td">Ingrediente</div>
+                              <div className="mc-td">Cantidad</div>
+                              <div className="mc-td">Merma %</div>
+                              <div className="mc-td">Coste línea</div>
+                            </div>
+                            {detailLines.map((line, idx) => {
+                              const ing =
+                                line.ingredient || line.ingredient_data || null;
+                              const name =
+                                ing?.name ||
+                                line.ingredient_name ||
+                                `#${line.ingredient_id}`;
+                              const unit = ing?.unit || line.unit || "";
+                              const qty = line.gross_weight ?? line.qty ?? 0;
+                              const dec =
+                                line.decrease_pct ?? line.merma_pct ?? 0;
+                              const lineCost =
+                                line.ingredient_cost ??
+                                line.line_cost ??
+                                line.cost ??
+                                0;
+
+                              return (
+                                <div key={idx} className="mc-tr">
+                                  <div className="mc-td">{name}</div>
+                                  <div className="mc-td">
+                                    {qty} {unit}
+                                  </div>
+                                  <div className="mc-td">{dec} %</div>
+                                  <div className="mc-td">{lineCost} €</div>
+                                </div>
+                              );
+                            })}
+                          </div>
+                        )}
+                      </div>
+
+                      <hr />
+
+                      {/* Parte inferior: mini-form para añadir ingrediente */}
+                      <div className="mc-dish-add-line">
+                        <h5>Añadir ingrediente</h5>
+
+                        {lineError && (
+                          <div className="mc-error mb-2">{lineError}</div>
+                        )}
+
+                        <form
+                          className="mc-form-inline"
+                          onSubmit={handleAddLineToDish}
+                        >
+                          <div className="mc-form-row d-flex gap-2 flex-wrap">
+                            <div style={{ minWidth: 200, flex: "1 1 auto" }}>
+                              <label className="mc-field">
+                                <span>Ingrediente</span>
+                                <select
+                                  className="mc-input"
+                                  value={newLine.ingredient_id}
+                                  onChange={(e) =>
+                                    handleNewLineChange(
+                                      "ingredient_id",
+                                      e.target.value
+                                    )
+                                  }
+                                >
+                                  <option value="">Selecciona…</option>
+                                  {ingredients.map((i) => (
+                                    <option key={i.id} value={i.id}>
+                                      {i.name} — {i.price_per_unit} / {i.unit}
+                                    </option>
+                                  ))}
+                                </select>
+                              </label>
+                            </div>
+
+                            <div style={{ minWidth: 120 }}>
+                              <label className="mc-field">
+                                <span>Cantidad bruta</span>
+                                <input
+                                  className="mc-input"
+                                  type="number"
+                                  min="0"
+                                  step="0.0001"
+                                  value={newLine.gross_weight}
+                                  onChange={(e) =>
+                                    handleNewLineChange(
+                                      "gross_weight",
+                                      e.target.value
+                                    )
+                                  }
+                                />
+                              </label>
+                            </div>
+
+                            <div style={{ minWidth: 120 }}>
+                              <label className="mc-field">
+                                <span>Merma %</span>
+                                <input
+                                  className="mc-input"
+                                  type="number"
+                                  min="0"
+                                  max="100"
+                                  step="0.01"
+                                  value={newLine.decrease_pct}
+                                  onChange={(e) =>
+                                    handleNewLineChange(
+                                      "decrease_pct",
+                                      e.target.value
+                                    )
+                                  }
+                                />
+                              </label>
+                            </div>
+
+                            <div className="d-flex align-items-end">
+                              <button
+                                type="submit"
+                                className="mc-cta"
+                                disabled={lineLoading}
+                              >
+                                {lineLoading
+                                  ? "Añadiendo..."
+                                  : "Añadir ingrediente"}
+                              </button>
+                            </div>
+                          </div>
+                        </form>
+                      </div>
+                    </>
+                  )}
+                </div>
+              )}
             </section>
           )}
 
-          {/* PROFILE placeholder (MVP) */}
+          {/* PROFILE dentro del hub */}
           {view === "profile" && (
             <section className="mc-panel">
               <div className="mc-panel-head">
-                <h3>PROFILE</h3>
+                <h3>Perfil</h3>
               </div>
-              <div className="mc-empty">
-                MVP: aquí conectamos el perfil dentro del hub.
+
+              {/* ... el resto de tu Profile queda igual ... */}
+              {/* (No lo toco para no modificar de más) */}
+
+              <div className="mc-grid-2">
+                {/* Columna izquierda: datos de usuario */}
+                <div className="mc-profile-left">
+                  {profileError && (
+                    <div className="mc-error mb-2">{profileError}</div>
+                  )}
+                  {profileMsg && (
+                    <div className="mc-success mb-2">{profileMsg}</div>
+                  )}
+
+                  <div className="mc-profile-avatar-wrap">
+                    <div className="mc-profile-avatar">
+                      <img
+                        src={getAvatarFromText(profileName || email || "User")}
+                        alt="Avatar"
+                      />
+                    </div>
+                  </div>
+
+                  {profileLoading && !isEditingProfile && (
+                    <div className="mc-empty">Cargando perfil…</div>
+                  )}
+
+                  {isEditingProfile ? (
+                    <form className="mc-form" onSubmit={handleProfileSubmit}>
+                      <h4 className="mc-form-title">Editar perfil</h4>
+
+                      <label className="mc-field">
+                        <span>Nombre</span>
+                        <input
+                          className="mc-input"
+                          value={profileName}
+                          onChange={(e) => setProfileName(e.target.value)}
+                        />
+                      </label>
+
+                      <label className="mc-field">
+                        <span>Correo</span>
+                        <input
+                          className="mc-input"
+                          type="email"
+                          value={email}
+                          onChange={(e) => setEmail(e.target.value)}
+                        />
+                      </label>
+
+                      <label className="mc-field">
+                        <span>Teléfono</span>
+                        <input
+                          className="mc-input"
+                          value={telefono}
+                          onChange={(e) => setTelefono(e.target.value)}
+                        />
+                      </label>
+
+                      <label className="mc-field">
+                        <span>Dirección</span>
+                        <input
+                          className="mc-input"
+                          value={direccion}
+                          onChange={(e) => setDireccion(e.target.value)}
+                        />
+                      </label>
+
+                      <div className="mc-form-actions">
+                        <button
+                          type="button"
+                          className="mc-btn-secondary"
+                          onClick={() => setIsEditingProfile(false)}
+                        >
+                          Cancelar
+                        </button>
+                        <button
+                          type="submit"
+                          className="mc-cta"
+                          disabled={profileLoading}
+                        >
+                          {profileLoading ? "Guardando..." : "Guardar cambios"}
+                        </button>
+                      </div>
+                    </form>
+                  ) : (
+                    <div className="mc-profile-readonly">
+                      <div className="mc-field">
+                        <span className="mc-label">Nombre</span>
+                        <div className="mc-value">
+                          {profileName || <span className="mc-muted">-</span>}
+                        </div>
+                      </div>
+                      <div className="mc-field">
+                        <span className="mc-label">Correo</span>
+                        <div className="mc-value">
+                          {email || <span className="mc-muted">-</span>}
+                        </div>
+                      </div>
+                      <div className="mc-field">
+                        <span className="mc-label">Teléfono</span>
+                        <div className="mc-value">
+                          {telefono || <span className="mc-muted">-</span>}
+                        </div>
+                      </div>
+                      <div className="mc-field">
+                        <span className="mc-label">Dirección</span>
+                        <div className="mc-value">
+                          {direccion ? (
+                            <span
+                              className="mc-link"
+                              onClick={() => openInMaps(direccion)}
+                            >
+                              {direccion}
+                            </span>
+                          ) : (
+                            <span className="mc-muted">-</span>
+                          )}
+                        </div>
+                      </div>
+
+                      <div className="mc-form-actions mt-3">
+                        <button
+                          type="button"
+                          className="mc-cta"
+                          onClick={() => setIsEditingProfile(true)}
+                        >
+                          Editar perfil
+                        </button>
+                      </div>
+                    </div>
+                  )}
+                </div>
+
+                {/* Columna derecha: restaurantes del usuario + crear nuevo */}
+                <div className="mc-profile-right">
+                  <div className="mc-panel-subhead">
+                    <h4>Restaurantes</h4>
+                    {!showCreateRest && (
+                      <button
+                        type="button"
+                        className="mc-cta mc-cta-small"
+                        onClick={() => setShowCreateRest(true)}
+                      >
+                        New restaurant
+                      </button>
+                    )}
+                    {showCreateRest && (
+                      <button
+                        type="button"
+                        className="mc-cta mc-cta-secondary mc-cta-small"
+                        onClick={() => {
+                          setShowCreateRest(false);
+                          setRestError("");
+                        }}
+                      >
+                        Cancel
+                      </button>
+                    )}
+                  </div>
+
+                  {restError && <div className="mc-error mb-2">{restError}</div>}
+
+                  {showCreateRest && (
+                    <form
+                      className="mc-form"
+                      onSubmit={handleCreateRestaurantFromProfile}
+                      style={{ maxWidth: 480 }}
+                    >
+                      <label className="mc-field">
+                        <span>Nombre del restaurante *</span>
+                        <input
+                          className="mc-input"
+                          value={restForm.name}
+                          onChange={(e) =>
+                            handleRestFormChange("name", e.target.value)
+                          }
+                          required
+                        />
+                      </label>
+
+                      <label className="mc-field">
+                        <span>Teléfono (opcional)</span>
+                        <input
+                          className="mc-input"
+                          value={restForm.telefono}
+                          onChange={(e) =>
+                            handleRestFormChange("telefono", e.target.value)
+                          }
+                        />
+                      </label>
+
+                      <label className="mc-field">
+                        <span>Dirección (opcional)</span>
+                        <input
+                          className="mc-input"
+                          value={restForm.direccion}
+                          onChange={(e) =>
+                            handleRestFormChange("direccion", e.target.value)
+                          }
+                        />
+                      </label>
+
+                      <div className="mc-form-actions">
+                        <button
+                          type="submit"
+                          className="mc-cta"
+                          disabled={restLoading}
+                        >
+                          {restLoading ? "Creando..." : "Crear y abrir en dashboard"}
+                        </button>
+                      </div>
+                    </form>
+                  )}
+
+                  {!showCreateRest && (
+                    <div className="mc-profile-restaurants-list">
+                      {profileLoading && !restaurants.length && (
+                        <div className="mc-empty">Cargando…</div>
+                      )}
+
+                      {!profileLoading && !restaurants.length && (
+                        <div className="mc-empty">
+                          Aún no has creado restaurantes.
+                        </div>
+                      )}
+
+                      {restaurants.length > 0 && (
+                        <div className="mc-list">
+                          {restaurants.map((r) => (
+                            <div
+                              key={r.id}
+                              className="mc-list-item mc-list-item--rest"
+                            >
+                              <div className="mc-list-avatar">
+                                <img
+                                  src={getAvatarFromText(r.name)}
+                                  alt={r.name}
+                                />
+                              </div>
+                              <div className="mc-list-body">
+                                <div className="mc-list-title">
+                                  {r.name || `Restaurant #${r.id}`}
+                                </div>
+                                {r.telefono && (
+                                  <div className="mc-list-sub mc-muted">
+                                    Teléfono: {r.telefono}
+                                  </div>
+                                )}
+                                {r.direccion && (
+                                  <div className="mc-list-sub">
+                                    <span
+                                      className="mc-link"
+                                      onClick={() => openInMaps(r.direccion)}
+                                    >
+                                      {r.direccion}
+                                    </span>
+                                  </div>
+                                )}
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  )}
+                </div>
               </div>
             </section>
           )}
