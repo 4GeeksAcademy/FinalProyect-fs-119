@@ -30,7 +30,7 @@ export const Navbar = () => {
           <ul className="navbar-nav text-center text-lg-start">
             <li className="nav-item mx-2 my-2 my-lg-0">
               <Link
-                to="/logister?mode=register"
+                to="/register"
                 className="nav-link"
                 style={{ color: "#18498b", fontWeight: 500 }}
               >
@@ -39,7 +39,7 @@ export const Navbar = () => {
             </li>
             <li className="nav-item mx-2 my-2 my-lg-0">
               <Link
-                to="/logister?mode=login"
+                to="/login"
                 className="nav-link"
                 style={{ color: "#18498b", fontWeight: 500 }}
               >

@@ -13,18 +13,22 @@ import Demo from "./pages/Demo";
 import Profile from "./pages/Profile";
 import ResetPassword from "./pages/ResetPassword";
 import Logister from "./pages/Logister";
+import Login from "./pages/Login";
+import Register from "./pages/Register";
 
 export const router = createBrowserRouter(
   createRoutesFromElements(
     <>
-
+      <Route path="resetPassword/:token/token" element={<ResetPassword />} />
       <Route element={<Layout />}>
         <Route index element={<LandingPage />} />
         <Route path="/home" element={<Home />} />
         <Route path="demo" element={<Demo />} />
         <Route path="logister" element={<Logister />} />
         <Route path="profile" element={<Profile />} />
-        <Route path="resetPassword/:token*" element={<ResetPassword />} />
+        <Route path="login" element={<Login />} />
+        <Route path="register" element={<Register />} />
+        
       </Route>
 
       <Route path="single/:theId" element={<Single />} />
