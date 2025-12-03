@@ -1,10 +1,13 @@
 from flask import Blueprint, request, jsonify
 from ..models import db, Restaurant, Ingredients
 from decimal import Decimal, InvalidOperation
+from flask_cors import CORS
 from api.extensions import  has_value
 
 ingr_bp = Blueprint('ingr_bp', __name__, url_prefix='/api/restaurant/<int:restaurant_id>')
 
+
+CORS(ingr_bp)
 
 
 UNIT_MAP = {

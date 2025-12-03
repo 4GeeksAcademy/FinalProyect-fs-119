@@ -1,11 +1,12 @@
 from flask import Blueprint, request, jsonify
 from ..models import db, Restaurant, User
+from flask_cors import CORS
 from api.extensions import  has_value
 
 rest_bp = Blueprint('rest', __name__, url_prefix='/api/user/<int:user_id>')
 
 #---URL->/api/user/user_id/rest
-
+CORS(rest_bp)
 
 @rest_bp.route('/restaurant', methods=['POST'])
 def create_restaurant(user_id):

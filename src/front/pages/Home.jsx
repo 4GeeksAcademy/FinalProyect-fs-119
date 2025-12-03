@@ -30,21 +30,22 @@ const Home = () => {
   const user_id = localStorage.getItem("user_id");
   const currentRestaurant = store.currentRestaurant;
   const view = store.currentView || "dashboard";
+  const [sidebarOpen, setSidebarOpen] = useState(window.innerWidth >= 992);
   const [selectedDishIngredients, setSelectedDishIngredients] = useState([]);
 
+  const toggleSidebar = () => setSidebarOpen(!sidebarOpen);
+
+  
   useEffect(() => {
     if (!user_id) return;
     (async () => {
       const r = await fetchJson(`api/user/${user_id}/restaurant`);
-      const list =
-        r?.data?.restaurants || r?.data?.restaurants_serialized || [];
-      dispatch({
-        type: "set_restaurants",
-        payload: Array.isArray(list) ? list : [],
-      });
+      const list = r?.data?.restaurants || r?.data?.restaurants_serialized || [];
+      dispatch({ type: "set_restaurants", payload: Array.isArray(list) ? list : [] });
     })();
   }, [user_id, dispatch]);
 
+ 
   useEffect(() => {
     if (!currentRestaurant?.id) return;
     (async () => {
@@ -52,18 +53,12 @@ const Home = () => {
 
       const d = await fetchJson(`api/restaurant/${rest}/dishes`);
       if (d.ok && d.data)
-        dispatch({
-          type: "set_dishes",
-          payload: d.data.dishes || d.data || [],
-        });
+        dispatch({ type: "set_dishes", payload: d.data.dishes || d.data || [] });
 
       const c = await fetchJson(`api/restaurant/${rest}/categories`);
       const cats = c?.data?.categories || c?.data?.categoria || c?.data || [];
       if (c.ok && Array.isArray(cats))
-        dispatch({
-          type: "merge_currentRestaurant",
-          payload: { categories: cats },
-        });
+        dispatch({ type: "merge_currentRestaurant", payload: { categories: cats } });
 
       const i = await fetchJson(`api/restaurant/${rest}/ingredients`);
       if (i.ok && i.data)
@@ -86,18 +81,11 @@ const Home = () => {
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(payload),
     });
-    const newR =
-      r?.data?.restaurante || r?.data?.restaurant || r?.data || null;
+    const newR = r?.data?.restaurante || r?.data?.restaurant || r?.data || null;
     if (r.ok && newR) {
-      dispatch({
-        type: "set_restaurants",
-        payload: [...(store.restaurants || []), newR],
-      });
+      dispatch({ type: "set_restaurants", payload: [...(store.restaurants || []), newR] });
       dispatch({ type: "set_currentRestaurant", payload: newR });
-      dispatch({
-        type: "ui_set",
-        payload: { showRestaurantModal: false },
-      });
+      dispatch({ type: "ui_set", payload: { showRestaurantModal: false } });
       return { ok: true, data: newR };
     }
     return { ok: false, msg: r?.data?.msg || "Error" };
@@ -116,14 +104,8 @@ const Home = () => {
       ? r?.data?.categoria || r?.data?.category || r?.data
       : { id: `local-${Date.now()}`, name };
     const list = [...(currentRestaurant.categories || []), created];
-    dispatch({
-      type: "merge_currentRestaurant",
-      payload: { categories: list },
-    });
-    dispatch({
-      type: "ui_set",
-      payload: { showCategoryModal: false },
-    });
+    dispatch({ type: "merge_currentRestaurant", payload: { categories: list } });
+    dispatch({ type: "ui_set", payload: { showCategoryModal: false } });
     return { ok: true, data: created };
   };
 
@@ -140,14 +122,8 @@ const Home = () => {
       ? r?.data?.ingrediente || r?.data?.ingredient || r?.data
       : { ...ingredient, id: `local-${Date.now()}` };
     const list = [...(currentRestaurant.ingredients || []), newIng];
-    dispatch({
-      type: "merge_currentRestaurant",
-      payload: { ingredients: list },
-    });
-    dispatch({
-      type: "ui_set",
-      payload: { showIngredientModal: false },
-    });
+    dispatch({ type: "merge_currentRestaurant", payload: { ingredients: list } });
+    dispatch({ type: "ui_set", payload: { showIngredientModal: false } });
     return { ok: true, data: newIng };
   };
 
@@ -163,9 +139,7 @@ const Home = () => {
     });
 
     const newDish = r.ok ? r?.data?.dish || r?.data : null;
-    if (!r.ok || !newDish?.id) {
-      return { ok: false, msg: r?.data?.msg || "Error creando plato" };
-    }
+    if (!r.ok || !newDish?.id) return { ok: false, msg: r?.data?.msg || "Error creando plato" };
 
     for (const line of ingredientLines) {
       let ingredientId = line.ingredient_id || null;
@@ -183,9 +157,7 @@ const Home = () => {
         });
 
         const newIng = ingRes.ok
-          ? ingRes?.data?.ingrediente ||
-            ingRes?.data?.ingredient ||
-            ingRes?.data
+          ? ingRes?.data?.ingrediente || ingRes?.data?.ingredient || ingRes?.data
           : null;
 
         if (!ingRes.ok || !newIng?.id) {
@@ -218,6 +190,7 @@ const Home = () => {
     return { ok: true, data: newDish };
   };
 
+ 
   const handleSelectCategory = async (category) => {
     dispatch({ type: "set_selectedCategory", payload: category });
     dispatch({ type: "set_currentView", payload: "dishes" });
@@ -236,22 +209,77 @@ const Home = () => {
   };
 
   return (
-    <div className="d-flex" style={{ minHeight: "100vh" }}>
-      <Sidebar onOpenRestaurantModal={openRestaurantModal} />
+    <div className="d-flex">
+     
+      <Sidebar
+        sidebarOpen={sidebarOpen}
+        setSidebarOpen={setSidebarOpen}
+        onOpenRestaurantModal={openRestaurantModal}
+      />
+
+      
+      {sidebarOpen && (
+        <div
+          className="position-fixed top-0 start-0 w-100 h-100 bg-dark bg-opacity-50 d-lg-none"
+          style={{ zIndex: 1040 }}
+          onClick={toggleSidebar}
+        ></div>
+      )}
+
+      
       <main className="flex-grow-1 p-4" style={{ background: "#F7F9FB" }}>
+        
+        <button className="btn btn-primary d-lg-none mb-3" onClick={toggleSidebar}>
+          Menú
+        </button>
+
+        
+        {view === "dashboard" && (
+          <>
+            <div className="d-flex justify-content-between align-items-center mb-4 flex-wrap">
+              <h2 style={{ color: "#21334a" }}>Resumen</h2>
+            </div>
+
+            <div className="d-flex gap-3 mb-4 flex-wrap">
+              <SummaryCard number={store.dishes?.length || 0} label="Platos" />
+              <SummaryCard
+                number={store.currentRestaurant?.ingredients?.length || 0}
+                label="Ingredientes"
+              />
+              <SummaryCard
+                number={store.currentRestaurant?.categories?.length || 0}
+                label="Categorías"
+              />
+            </div>
+
+            <div className="row g-3">
+              <div className="col-12 col-lg-7">
+                <div className="card p-3 h-100">
+                  <h5>Platos destacados</h5>
+                  <TopDishes dishes={store.dishes || []} />
+                </div>
+              </div>
+              <div className="col-12 col-lg-5">
+                <div className="card p-3 h-100">
+                  <h5>Ingredientes</h5>
+                  <IngredientsPanel
+                    ingredients={store.currentRestaurant?.ingredients || []}
+                  />
+                </div>
+              </div>
+            </div>
+          </>
+        )}
+
+        
         {view === "categories" && currentRestaurant && (
           <>
-            <div className="d-flex justify-content-between align-items-center mb-3">
-              <h3 style={{ margin: 0 }}>
-                Categorías de {currentRestaurant.name}
-              </h3>
+            <div className="d-flex justify-content-between align-items-center mb-3 flex-wrap">
+              <h3 className="mb-2 mb-lg-0">Categorías de {currentRestaurant.name}</h3>
               <button
                 className="btn btn-primary"
                 onClick={() =>
-                  dispatch({
-                    type: "ui_set",
-                    payload: { showCategoryModal: true },
-                  })
+                  dispatch({ type: "ui_set", payload: { showCategoryModal: true } })
                 }
               >
                 +
@@ -264,12 +292,12 @@ const Home = () => {
           </>
         )}
 
+       
         {view === "dishes" && currentRestaurant && (
           <>
-            <div className="d-flex justify-content-between align-items-center mb-2">
+            <div className="d-flex justify-content-between align-items-center mb-2 flex-wrap">
               <h3 className="d-flex align-items-center" style={{ gap: 8 }}>
                 <span>Platos de {currentRestaurant.name}</span>
-
                 {currentRestaurant.categories?.length > 0 && (
                   <div className="dropdown">
                     <button
@@ -278,9 +306,7 @@ const Home = () => {
                       data-bs-toggle="dropdown"
                       aria-expanded="false"
                     >
-                      {store.selectedCategory
-                        ? store.selectedCategory.name
-                        : "Todas las categorías"}
+                      {store.selectedCategory ? store.selectedCategory.name : "Todas las categorías"}
                     </button>
                     <ul className="dropdown-menu">
                       <li>
@@ -301,10 +327,7 @@ const Home = () => {
                       <li><hr className="dropdown-divider" /></li>
                       {currentRestaurant.categories.map((c) => (
                         <li key={c.id}>
-                          <button
-                            className="dropdown-item"
-                            onClick={() => handleSelectCategory(c)}
-                          >
+                          <button className="dropdown-item" onClick={() => handleSelectCategory(c)}>
                             {c.name}
                           </button>
                         </li>
@@ -313,11 +336,7 @@ const Home = () => {
                   </div>
                 )}
               </h3>
-
-              <button
-                className="btn btn-primary rounded-circle"
-                onClick={openDishModal}
-              >
+              <button className="btn btn-primary rounded-circle" onClick={openDishModal}>
                 +
               </button>
             </div>
@@ -330,9 +349,10 @@ const Home = () => {
           </>
         )}
 
+        
         {view === "ingredients" && currentRestaurant && (
           <>
-            <div className="d-flex justify-content-between mb-2">
+            <div className="d-flex justify-content-between mb-2 flex-wrap">
               <h3>
                 Ingredientes
                 {selectedDishIngredients.length
@@ -342,10 +362,7 @@ const Home = () => {
               <button
                 className="btn btn-primary"
                 onClick={() =>
-                  dispatch({
-                    type: "ui_set",
-                    payload: { showIngredientModal: true },
-                  })
+                  dispatch({ type: "ui_set", payload: { showIngredientModal: true } })
                 }
               >
                 +
@@ -360,75 +377,27 @@ const Home = () => {
             />
           </>
         )}
-
-       {view === "dashboard" && (
-        <>
-          <div className="d-flex justify-content-between align-items-center mb-4">
-            <h2 style={{ color: "#21334a" }}>Resumen</h2>
-          </div>
-
-          <div className="d-flex gap-3 mb-4">
-            <SummaryCard number={store.dishes?.length || 0} label="Platos" />
-            <SummaryCard
-              number={store.currentRestaurant?.ingredients?.length || 0}
-              label="Ingredientes"
-            />
-            <SummaryCard
-              number={store.currentRestaurant?.categories?.length || 0}
-              label="Categorías"
-            />
-          </div>
-
-          <div className="row">
-            <div className="col-lg-7 mb-4">
-              <div className="card p-3">
-                <h5 className="mb-3">Platos destacados</h5>
-                <TopDishes dishes={store.dishes || []} />
-              </div>
-            </div>
-            <div className="col-lg-5 mb-4">
-              <div className="card p-3">
-                <h5 className="mb-3">Ingredientes</h5>
-                <IngredientsPanel
-                  ingredients={store.currentRestaurant?.ingredients || []}
-                />
-              </div>
-            </div>
-          </div>
-        </>
-      )}
-
       </main>
 
+     
       <CreateRestaurantModal
         show={store.ui.showRestaurantModal}
-        onClose={() =>
-          dispatch({
-            type: "ui_set",
-            payload: { showRestaurantModal: false },
-          })
-        }
+        onClose={() => dispatch({ type: "ui_set", payload: { showRestaurantModal: false } })}
         onSave={createRestaurant}
       />
       <CreateCategoryModal
         show={store.ui.showCategoryModal}
-        onClose={() =>
-          dispatch({ type: "ui_set", payload: { showCategoryModal: false } })
-        }
+        onClose={() => dispatch({ type: "ui_set", payload: { showCategoryModal: false } })}
         onSave={createCategory}
       />
       <CreateIngredientModal
         show={store.ui.showIngredientModal}
-        onClose={() =>
-          dispatch({ type: "ui_set", payload: { showIngredientModal: false } })
-        }
+        onClose={() => dispatch({ type: "ui_set", payload: { showIngredientModal: false } })}
         onSave={createIngredient}
       />
       <CreateDishModal
         show={store.ui.showDishModal}
-        onClose={() =>
-          dispatch({ type: "ui_set", payload: { showDishModal: false } })
-        }
+        onClose={() => dispatch({ type: "ui_set", payload: { showDishModal: false } })}
         onSave={createDish}
         restaurant={currentRestaurant}
         categories={currentRestaurant?.categories || []}
