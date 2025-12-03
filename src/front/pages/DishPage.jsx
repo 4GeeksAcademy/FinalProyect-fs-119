@@ -344,14 +344,7 @@ export default function DishPage({
                 {d.description || ""}
               </div>
             </div>
-            <div>
-              <button
-                className="btn btn-sm btn-danger"
-                onClick={() => onDeleteDish && onDeleteDish(d.id)}
-              >
-                Delete
-              </button>
-            </div>
+        
           </div>
         ))}
       </div>
